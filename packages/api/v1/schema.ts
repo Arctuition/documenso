@@ -134,6 +134,7 @@ export const ZCreateDocumentMutationSchema = z.object({
       email: z.string().email().min(1),
       role: z.nativeEnum(RecipientRole).optional().default(RecipientRole.SIGNER),
       signingOrder: z.number().nullish(),
+      redirectUrl: z.string().nullish(),
     }),
   ),
   meta: z
