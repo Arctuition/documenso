@@ -50,6 +50,7 @@ export const ZRecipientLiteSchema = RecipientSchema.pick({
   authOptions: true,
   signingOrder: true,
   rejectionReason: true,
+  redirectUrl: true,
 });
 
 /**
