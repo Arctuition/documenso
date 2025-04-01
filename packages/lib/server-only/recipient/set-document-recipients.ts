@@ -192,6 +192,7 @@ export const setDocumentRecipients = async ({
             signingStatus:
               recipient.role === RecipientRole.CC ? SigningStatus.SIGNED : SigningStatus.NOT_SIGNED,
             authOptions,
+            redirectUrl: recipient.redirectUrl,
           },
         });
 
@@ -359,6 +360,7 @@ type RecipientData = {
   signingOrder?: number | null;
   accessAuth?: TRecipientAccessAuthTypes | null;
   actionAuth?: TRecipientActionAuthTypes | null;
+  redirectUrl?: string | null;
 };
 
 const hasRecipientBeenChanged = (recipient: Recipient, newRecipientData: RecipientData) => {

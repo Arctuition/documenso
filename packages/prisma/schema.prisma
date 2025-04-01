@@ -457,6 +457,7 @@ model Recipient {
   template          Template?     @relation(fields: [templateId], references: [id], onDelete: Cascade)
   fields            Field[]
   signatures        Signature[]
+  redirectUrl            String?
 
   @@unique([documentId, email])
   @@unique([templateId, email])
