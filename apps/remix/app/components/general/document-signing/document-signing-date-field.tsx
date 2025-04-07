@@ -101,10 +101,30 @@ export const DocumentSigningDateField = ({
     }
   };
 
-  // Date fields cannot be removed once signed
-  const onRemove = () => {
-    // This function is intentionally disabled for date fields
-    return;
+  const onRemove = async () => {
+    try {
+      const payload: TRemovedSignedFieldWithTokenMutationSchema = {
+        token: recipient.token,
+        fieldId: field.id,
+      };
+
+      if (onUnsignField) {
+        await onUnsignField(payload);
+        return;
+      }
+
+      await removeSignedFieldWithToken(payload);
+
+      await revalidate();
+    } catch (err) {
+      console.error(err);
+
+      toast({
+        title: _(msg`Error`),
+        description: _(msg`An error occurred while removing the field.`),
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
