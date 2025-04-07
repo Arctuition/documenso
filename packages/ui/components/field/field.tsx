@@ -144,7 +144,7 @@ export function FieldRootContainer({ field, children, cardClassName }: FieldCont
         data-inserted={field.inserted ? 'true' : 'false'}
         className={cardClassNames}
       >
-        <CardContent className="text-foreground hover:shadow-primary-foreground group flex h-full w-full flex-col items-center justify-center p-2">
+        <CardContent className="text-foreground hover:shadow-primary-foreground group flex h-full w-full flex-col items-center justify-center p-2 py-0">
           {children}
         </CardContent>
       </Card>
