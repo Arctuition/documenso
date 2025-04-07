@@ -120,7 +120,7 @@ export const DocumentSigningPageView = ({
       }
     };
 
-    autoSignDateFields();
+    autoSignDateFields().catch(console.error);
   }, [
     fields,
     recipient.token,

@@ -102,9 +102,8 @@ export const DocumentSigningDateField = ({
   };
 
   // Date fields cannot be removed once signed
-  const onRemove = async () => {
+  const onRemove = () => {
     // This function is intentionally disabled for date fields
-    // No implementation to prevent removal of date fields
     return;
   };
 
