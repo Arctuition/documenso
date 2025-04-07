@@ -33,7 +33,6 @@ import { DocumentSigningInitialsField } from '~/components/general/document-sign
 import { DocumentSigningNameField } from '~/components/general/document-signing/document-signing-name-field';
 import { DocumentSigningNumberField } from '~/components/general/document-signing/document-signing-number-field';
 import { DocumentSigningRadioField } from '~/components/general/document-signing/document-signing-radio-field';
-import { DocumentSigningRejectDialog } from '~/components/general/document-signing/document-signing-reject-dialog';
 import { DocumentSigningSignatureField } from '~/components/general/document-signing/document-signing-signature-field';
 import { DocumentSigningTextField } from '~/components/general/document-signing/document-signing-text-field';
 import { DocumentReadOnlyFields } from '~/components/general/document/document-read-only-fields';
@@ -86,9 +85,6 @@ export const DocumentSigningPageView = ({
 
         <div className="mt-2.5 flex flex-wrap items-center justify-between gap-x-6">
           <div className="max-w-[50ch]">
-            <span className="text-muted-foreground truncate" title={senderName}>
-              {senderName} {senderEmail}
-            </span>{' '}
             <span className="text-muted-foreground">
               {match(recipient.role)
                 .with(RecipientRole.VIEWER, () =>
@@ -102,9 +98,7 @@ export const DocumentSigningPageView = ({
                 )
                 .with(RecipientRole.SIGNER, () =>
                   document.teamId && !shouldUseTeamDetails ? (
-                    <Trans>
-                      on behalf of "{document.team?.name}" has invited you to sign this document
-                    </Trans>
+                    <Trans>You are invited to sign this document</Trans>
                   ) : (
                     <Trans>has invited you to sign this document</Trans>
                   ),
@@ -130,8 +124,6 @@ export const DocumentSigningPageView = ({
                 .otherwise(() => null)}
             </span>
           </div>
-
-          <DocumentSigningRejectDialog document={document} token={recipient.token} />
         </div>
 
         <div className="mt-8 grid grid-cols-12 gap-y-8 lg:gap-x-8 lg:gap-y-0">
