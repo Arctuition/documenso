@@ -121,15 +121,10 @@ export const DocumentSigningPageView = ({
     };
 
     autoSignDateFields().catch(console.error);
-  }, [
-    fields,
-    recipient.token,
-    signFieldWithToken,
-    revalidate,
-    toast,
-    isRecipientsTurn,
-    documentMeta?.dateFormat,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Empty dependency array ensures this effect only runs once when component mounts
+  // This prevents re-signing after a user manually removes a signature
 
   return (
     <DocumentSigningRecipientProvider recipient={recipient} targetSigner={selectedSigner ?? null}>
