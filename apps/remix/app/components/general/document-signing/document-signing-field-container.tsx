@@ -9,7 +9,7 @@ import { ZFieldMetaSchema } from '@documenso/lib/types/field-meta';
 import type { FieldWithSignature } from '@documenso/prisma/types/field-with-signature';
 import { FieldRootContainer } from '@documenso/ui/components/field/field';
 import { cn } from '@documenso/ui/lib/utils';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@documenso/ui/primitives/tooltip';
+import { TooltipTrigger } from '@documenso/ui/primitives/tooltip';
 
 import { useRequiredDocumentSigningAuthContext } from './document-signing-auth-provider';
 
@@ -144,21 +144,6 @@ export const DocumentSigningFieldContainer = ({
               <Trans>Read only field</Trans>
             </span>
           </button>
-        )}
-
-        {type === 'Date' && field.inserted && !loading && !readOnlyField && (
-          <Tooltip delayDuration={0}>
-            <TooltipTrigger asChild>
-              <button
-                className="text-destructive bg-background/40 absolute inset-0 z-10 flex h-full w-full items-center justify-center rounded-md text-sm opacity-0 duration-200 group-hover:opacity-100"
-                onClick={onRemoveSignedFieldClick}
-              >
-                <Trans>Remove</Trans>
-              </button>
-            </TooltipTrigger>
-
-            {tooltipText && <TooltipContent className="max-w-xs">{tooltipText}</TooltipContent>}
-          </Tooltip>
         )}
 
         {type === 'Checkbox' && field.inserted && !loading && !readOnlyField && (
