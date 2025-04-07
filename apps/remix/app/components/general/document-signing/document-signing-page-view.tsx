@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Trans } from '@lingui/react/macro';
 import type { Field } from '@prisma/client';
 import { FieldType, RecipientRole } from '@prisma/client';
+import { useRevalidator } from 'react-router';
 import { match } from 'ts-pattern';
 
 import { DEFAULT_DOCUMENT_DATE_FORMAT } from '@documenso/lib/constants/date-formats';
 import { PDF_VIEWER_PAGE_SELECTOR } from '@documenso/lib/constants/pdf-viewer';
 import { DEFAULT_DOCUMENT_TIME_ZONE } from '@documenso/lib/constants/time-zones';
+import { DO_NOT_INVALIDATE_QUERY_ON_MUTATION } from '@documenso/lib/constants/trpc';
 import type { DocumentAndSender } from '@documenso/lib/server-only/document/get-document-by-token';
 import {
   ZCheckboxFieldMeta,
@@ -19,9 +21,11 @@ import {
 import type { CompletedField } from '@documenso/lib/types/fields';
 import type { FieldWithSignatureAndFieldMeta } from '@documenso/prisma/types/field-with-signature-and-fieldmeta';
 import type { RecipientWithFields } from '@documenso/prisma/types/recipient-with-fields';
+import { trpc } from '@documenso/trpc/react';
 import { Card, CardContent } from '@documenso/ui/primitives/card';
 import { ElementVisible } from '@documenso/ui/primitives/element-visible';
 import { PDFViewer } from '@documenso/ui/primitives/pdf-viewer';
+import { useToast } from '@documenso/ui/primitives/use-toast';
 
 import { DocumentSigningAutoSign } from '~/components/general/document-signing/document-signing-auto-sign';
 import { DocumentSigningCheckboxField } from '~/components/general/document-signing/document-signing-checkbox-field';
@@ -59,6 +63,12 @@ export const DocumentSigningPageView = ({
   const { documentData, documentMeta } = document;
 
   const [selectedSignerId, setSelectedSignerId] = useState<number | null>(allRecipients?.[0]?.id);
+  const { toast } = useToast();
+  const { revalidate } = useRevalidator();
+
+  const { mutateAsync: signFieldWithToken } = trpc.field.signFieldWithToken.useMutation(
+    DO_NOT_INVALIDATE_QUERY_ON_MUTATION,
+  );
 
   const shouldUseTeamDetails =
     document.teamId && document.team?.teamGlobalSettings?.includeSenderDetails === false;
@@ -72,6 +82,54 @@ export const DocumentSigningPageView = ({
   }
 
   const selectedSigner = allRecipients?.find((r) => r.id === selectedSignerId);
+
+  // Auto-sign date fields when the component mounts
+  useEffect(() => {
+    const autoSignDateFields = async () => {
+      // Only proceed if it's the recipient's turn
+      if (!isRecipientsTurn) return;
+
+      // Find all date fields that haven't been inserted yet
+      const dateFields = fields.filter((field) => field.type === FieldType.DATE && !field.inserted);
+
+      // If there are no date fields to sign, return
+      if (dateFields.length === 0) return;
+
+      try {
+        // Sign each date field
+        await Promise.all(
+          dateFields.map(async (field) => {
+            await signFieldWithToken({
+              token: recipient.token,
+              fieldId: field.id,
+              value: documentMeta?.dateFormat ?? DEFAULT_DOCUMENT_DATE_FORMAT,
+            });
+          }),
+        );
+
+        // Revalidate to refresh the UI
+        await revalidate();
+      } catch (error) {
+        console.error('Error auto-signing date fields:', error);
+
+        toast({
+          title: 'Error',
+          description: 'Failed to automatically sign date fields.',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    autoSignDateFields();
+  }, [
+    fields,
+    recipient.token,
+    signFieldWithToken,
+    revalidate,
+    toast,
+    isRecipientsTurn,
+    documentMeta?.dateFormat,
+  ]);
 
   return (
     <DocumentSigningRecipientProvider recipient={recipient} targetSigner={selectedSigner ?? null}>
