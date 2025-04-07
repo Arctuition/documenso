@@ -146,18 +146,15 @@ export const DocumentSigningFieldContainer = ({
           </button>
         )}
 
-        {type === 'Date' && field.inserted && !loading && !readOnlyField && (
+        {/* Date fields cannot be removed by users */}
+        {tooltipText && type === 'Date' && field.inserted && (
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
-              <button
-                className="text-destructive bg-background/40 absolute inset-0 z-10 flex h-full w-full items-center justify-center rounded-md text-sm opacity-0 duration-200 group-hover:opacity-100"
-                onClick={onRemoveSignedFieldClick}
-              >
-                <Trans>Remove</Trans>
-              </button>
+              <div className="absolute inset-0 z-10 h-full w-full rounded-md">
+                {/* Invisible trigger for tooltip */}
+              </div>
             </TooltipTrigger>
-
-            {tooltipText && <TooltipContent className="max-w-xs">{tooltipText}</TooltipContent>}
+            <TooltipContent className="max-w-xs">{tooltipText}</TooltipContent>
           </Tooltip>
         )}
 
