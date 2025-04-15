@@ -32,7 +32,6 @@ import { DocumentSigningCheckboxField } from '~/components/general/document-sign
 import { DocumentSigningDateField } from '~/components/general/document-signing/document-signing-date-field';
 import { DocumentSigningDropdownField } from '~/components/general/document-signing/document-signing-dropdown-field';
 import { DocumentSigningEmailField } from '~/components/general/document-signing/document-signing-email-field';
-import { DocumentSigningForm } from '~/components/general/document-signing/document-signing-form';
 import { DocumentSigningInitialsField } from '~/components/general/document-signing/document-signing-initials-field';
 import { DocumentSigningNameField } from '~/components/general/document-signing/document-signing-name-field';
 import { DocumentSigningNumberField } from '~/components/general/document-signing/document-signing-number-field';
@@ -41,6 +40,7 @@ import { DocumentSigningSignatureField } from '~/components/general/document-sig
 import { DocumentSigningTextField } from '~/components/general/document-signing/document-signing-text-field';
 import { DocumentReadOnlyFields } from '~/components/general/document/document-read-only-fields';
 
+import { DocumentSigningNextField } from './documeng-signin-next-field';
 import { DocumentSigningRecipientProvider } from './document-signing-recipient-provider';
 
 export type DocumentSigningPageViewProps = {
@@ -163,19 +163,26 @@ export const DocumentSigningPageView = ({
                 .otherwise(() => null)}
             </span>
           </div>
+          <div>
+            <DocumentSigningNextField
+              document={document}
+              recipient={recipient}
+              fields={fields}
+              redirectUrl={recipient.redirectUrl ?? documentMeta?.redirectUrl}
+              isRecipientsTurn={isRecipientsTurn}
+              allRecipients={allRecipients}
+            />
+          </div>
         </div>
 
         <div className="mt-8 grid grid-cols-12 gap-y-8 lg:gap-x-8 lg:gap-y-0">
-          <Card
-            className="col-span-12 rounded-xl before:rounded-xl lg:col-span-7 xl:col-span-8"
-            gradient
-          >
+          <Card className="col-span-12 rounded-xl before:rounded-xl" gradient>
             <CardContent className="p-2">
               <PDFViewer key={documentData.id} documentData={documentData} document={document} />
             </CardContent>
           </Card>
 
-          <div className="col-span-12 lg:col-span-5 xl:col-span-4">
+          {/* <div className="col-span-12 hidden lg:col-span-5 xl:col-span-4">
             <DocumentSigningForm
               document={document}
               recipient={recipient}
@@ -185,7 +192,7 @@ export const DocumentSigningPageView = ({
               allRecipients={allRecipients}
               setSelectedSignerId={setSelectedSignerId}
             />
-          </div>
+          </div> */}
         </div>
 
         <DocumentReadOnlyFields fields={completedFields} />
