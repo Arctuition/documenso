@@ -40,7 +40,7 @@ import { DocumentSigningSignatureField } from '~/components/general/document-sig
 import { DocumentSigningTextField } from '~/components/general/document-signing/document-signing-text-field';
 import { DocumentReadOnlyFields } from '~/components/general/document/document-read-only-fields';
 
-import { DocumentSigningNextField } from './document-signin-next-field';
+import { DocumentSigningNextField } from './document-signing-next-field';
 import { DocumentSigningRecipientProvider } from './document-signing-recipient-provider';
 
 export type DocumentSigningPageViewProps = {

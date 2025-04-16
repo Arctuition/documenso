@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 import { useLingui } from '@lingui/react';
+import { Trans } from '@lingui/react/macro';
 import { type Field, type Recipient } from '@prisma/client';
 import { useNavigate } from 'react-router';
 
@@ -8,9 +9,10 @@ import { useAnalytics } from '@documenso/lib/client-only/hooks/use-analytics';
 import type { DocumentAndSender } from '@documenso/lib/server-only/document/get-document-by-token';
 import type { TRecipientActionAuth } from '@documenso/lib/types/document-auth';
 import { isFieldUnsignedAndRequired } from '@documenso/lib/utils/advanced-fields-helpers';
-import { validateFieldsInserted } from '@documenso/lib/utils/fields';
+import { sortFieldsByPosition, validateFieldsInserted } from '@documenso/lib/utils/fields';
 import type { RecipientWithFields } from '@documenso/prisma/types/recipient-with-fields';
 import { trpc } from '@documenso/trpc/react';
+import { FieldToolTip } from '@documenso/ui/components/field/field-tooltip';
 import { cn } from '@documenso/ui/lib/utils';
 
 import { DocumentSigningCompleteDialog } from './document-signing-complete-dialog';
@@ -51,7 +53,14 @@ export const DocumentSigningNextField = ({
     [fields],
   );
 
+  const [validateUninsertedFields, setValidateUninsertedFields] = useState(false);
+
+  const uninsertedFields = useMemo(() => {
+    return sortFieldsByPosition(fieldsRequiringValidation.filter((field) => !field.inserted));
+  }, [fieldsRequiringValidation]);
+
   const fieldsValidated = () => {
+    setValidateUninsertedFields(true);
     validateFieldsInserted(fieldsRequiringValidation);
   };
 
@@ -106,6 +115,12 @@ export const DocumentSigningNextField = ({
 
   return (
     <div className={cn()}>
+      {validateUninsertedFields && uninsertedFields[0] && (
+        <FieldToolTip key={uninsertedFields[0].id} field={uninsertedFields[0]} color="warning">
+          <Trans>Click to insert field</Trans>
+        </FieldToolTip>
+      )}
+
       <DocumentSigningCompleteDialog
         isSubmitting={isSubmitting}
         documentTitle={document.title}
