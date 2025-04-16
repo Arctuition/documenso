@@ -55,8 +55,11 @@ export const DocumentSigningSignatureField = ({
 
   const signatureRef = useRef<HTMLParagraphElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const placeholderRef = useRef<HTMLParagraphElement>(null);
+  const placeholderContainerRef = useRef<HTMLDivElement>(null);
   const optionsRef = useRef<HTMLDivElement>(null);
   const [fontSize, setFontSize] = useState(2);
+  const [placeholderFontSize, setPlaceholderFontSize] = useState(2);
 
   const { signature: providedSignature, setSignature: setProvidedSignature } =
     useRequiredDocumentSigningContext();
@@ -321,6 +324,42 @@ export const DocumentSigningSignatureField = ({
     return () => resizeObserver.disconnect();
   }, [signature?.typedSignature]);
 
+  // Adjust placeholder text size to fit container
+  useLayoutEffect(() => {
+    if (!placeholderRef.current || !placeholderContainerRef.current || state !== 'empty') {
+      return;
+    }
+
+    const adjustPlaceholderSize = () => {
+      const container = placeholderContainerRef.current;
+      const text = placeholderRef.current;
+
+      if (!container || !text) {
+        return;
+      }
+
+      let size = 2;
+      text.style.fontSize = `${size}rem`;
+
+      while (
+        (text.scrollWidth > container.clientWidth || text.scrollHeight > container.clientHeight) &&
+        size > 0.8
+      ) {
+        size -= 0.1;
+        text.style.fontSize = `${size}rem`;
+      }
+
+      setPlaceholderFontSize(size);
+    };
+
+    const resizeObserver = new ResizeObserver(adjustPlaceholderSize);
+    resizeObserver.observe(placeholderContainerRef.current);
+
+    adjustPlaceholderSize();
+
+    return () => resizeObserver.disconnect();
+  }, [state]);
+
   return (
     <DocumentSigningFieldContainer
       field={field}
@@ -336,9 +375,18 @@ export const DocumentSigningSignatureField = ({
       )}
 
       {state === 'empty' && (
-        <p className="group-hover:text-primary font-signature text-muted-foreground text-[clamp(0.575rem,25cqw,1.2rem)] text-xl duration-200 group-hover:text-yellow-300">
-          <Trans>Signature</Trans>
-        </p>
+        <div
+          ref={placeholderContainerRef}
+          className="flex h-full w-full items-center justify-center p-2"
+        >
+          <p
+            ref={placeholderRef}
+            className="group-hover:text-primary font-signature text-muted-foreground w-full overflow-hidden text-center leading-tight duration-200 group-hover:text-yellow-300"
+            style={{ fontSize: `${placeholderFontSize}rem` }}
+          >
+            <Trans>Signature</Trans>
+          </p>
+        </div>
       )}
 
       {state === 'signed-image' && signature?.signatureImageAsBase64 && (
