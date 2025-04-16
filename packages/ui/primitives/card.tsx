@@ -32,7 +32,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
           } as React.CSSProperties
         }
         className={cn(
-          'bg-background text-foreground group relative rounded-lg border-2 backdrop-blur-[2px]',
+          'bg-background text-foreground group relative rounded-sm border-2 backdrop-blur-[2px] md:rounded-lg',
           {
             'gradient-border-mask before:pointer-events-none before:absolute before:-inset-[2px] before:rounded-lg before:p-[2px] before:[background:linear-gradient(var(--card-gradient-degrees),theme(colors.primary.DEFAULT/50%)_5%,theme(colors.border/80%)_30%)]':
               gradient,
