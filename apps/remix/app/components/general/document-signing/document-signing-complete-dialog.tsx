@@ -137,7 +137,7 @@ export const DocumentSigningCompleteDialog = ({
         </Button>
       </DialogTrigger>
 
-      <DialogContent>
+      <DialogContent position="center">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onFormSubmit)}>
             <fieldset disabled={form.formState.isSubmitting} className="border-none p-0">
