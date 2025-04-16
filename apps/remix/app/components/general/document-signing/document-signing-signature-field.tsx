@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react';
@@ -6,6 +6,7 @@ import { Trans } from '@lingui/react/macro';
 import { Loader } from 'lucide-react';
 import { useRevalidator } from 'react-router';
 
+import { useIsMobile } from '@documenso/lib/client-only/hooks/use-is-mobile';
 import { DO_NOT_INVALIDATE_QUERY_ON_MUTATION } from '@documenso/lib/constants/trpc';
 import { AppError, AppErrorCode } from '@documenso/lib/errors/app-error';
 import type { TRecipientActionAuth } from '@documenso/lib/types/document-auth';
@@ -17,6 +18,7 @@ import type {
 } from '@documenso/trpc/server/field-router/schema';
 import { Button } from '@documenso/ui/primitives/button';
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from '@documenso/ui/primitives/dialog';
+import { Sheet, SheetContent } from '@documenso/ui/primitives/sheet';
 import { SignaturePad } from '@documenso/ui/primitives/signature-pad';
 import { useToast } from '@documenso/ui/primitives/use-toast';
 
@@ -54,7 +56,11 @@ export const DocumentSigningSignatureField = ({
 
   const signatureRef = useRef<HTMLParagraphElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const placeholderRef = useRef<HTMLParagraphElement>(null);
+  const placeholderContainerRef = useRef<HTMLDivElement>(null);
+  const optionsRef = useRef<HTMLDivElement>(null);
   const [fontSize, setFontSize] = useState(2);
+  const [placeholderFontSize, setPlaceholderFontSize] = useState(2);
 
   const { signature: providedSignature, setSignature: setProvidedSignature } =
     useRequiredDocumentSigningContext();
@@ -74,6 +80,30 @@ export const DocumentSigningSignatureField = ({
   const isLoading = isSignFieldWithTokenLoading || isRemoveSignedFieldWithTokenLoading;
 
   const [showSignatureModal, setShowSignatureModal] = useState(false);
+  const [showSignatureOptionsPopover, setShowSignatureOptionsPopover] = useState(false);
+  const [showSignatureOptionsSheet, setShowSignatureOptionsSheet] = useState(false);
+  const [showSignatureBottomSheet, setShowSignatureBottomSheet] = useState(false);
+  const isMobile = useIsMobile();
+
+  // Handle click outside to dismiss the popup
+  useEffect(() => {
+    if (!showSignatureOptionsPopover) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (optionsRef.current && !optionsRef.current.contains(event.target as Node)) {
+        setShowSignatureOptionsPopover(false);
+      }
+    };
+
+    // Add the event listener
+    document.addEventListener('mousedown', handleClickOutside);
+
+    // Clean up
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSignatureOptionsPopover]);
+
   const [localSignature, setLocalSignature] = useState<string | null>(null);
 
   const state = useMemo<SignatureFieldState>(() => {
@@ -89,8 +119,21 @@ export const DocumentSigningSignatureField = ({
   }, [field.inserted, signature?.signatureImageAsBase64]);
 
   const onPreSign = () => {
-    if (!providedSignature) {
-      setShowSignatureModal(true);
+    // If the field is not inserted (empty) but we already have a signature from another field
+    // don't show the modal and directly apply the existing signature
+    if (!field.inserted && providedSignature) {
+      // We already have a signature from another field, so apply it directly
+      return true;
+    }
+
+    // Show the signature modal if this is the first field being signed
+    // or if the existing signature was cleared
+    if (!field.inserted || !providedSignature) {
+      if (isMobile) {
+        setShowSignatureBottomSheet(true);
+      } else {
+        setShowSignatureModal(true);
+      }
       return false;
     }
 
@@ -101,11 +144,14 @@ export const DocumentSigningSignatureField = ({
    */
   const onDialogSignClick = () => {
     setShowSignatureModal(false);
-    setProvidedSignature(localSignature);
+    setShowSignatureBottomSheet(false);
 
     if (!localSignature) {
       return;
     }
+
+    // Store the signature value to use after authentication
+    setProvidedSignature(localSignature);
 
     void executeActionAuthProcedure({
       onReauthFormSubmit: async (authOptions) => await onSign(authOptions, localSignature),
@@ -120,6 +166,20 @@ export const DocumentSigningSignatureField = ({
       if (!value) {
         setShowSignatureModal(true);
         return;
+      }
+
+      // If the field already has a signature, remove it first
+      if (field.inserted) {
+        const removePayload: TRemovedSignedFieldWithTokenMutationSchema = {
+          token: recipient.token,
+          fieldId: field.id,
+        };
+
+        if (onUnsignField) {
+          await onUnsignField(removePayload);
+        } else {
+          await removeSignedFieldWithToken(removePayload);
+        }
       }
 
       const isTypedSignature = !value.startsWith('data:image');
@@ -166,8 +226,42 @@ export const DocumentSigningSignatureField = ({
     }
   };
 
+  // This shows the options popover/sheet when an already signed field is clicked
+  const onSignedFieldClick = () => {
+    if (isMobile) {
+      setShowSignatureOptionsSheet(true);
+    } else {
+      setShowSignatureOptionsPopover(true);
+    }
+  };
+
+  // Handle the "Change" button click in the options popover/sheet
+  const onChangeSignature = () => {
+    // Close both popover and sheet regardless of which one is open
+    setShowSignatureOptionsPopover(false);
+    setShowSignatureOptionsSheet(false);
+
+    // Clear any existing signature data to start fresh
+    setLocalSignature(null);
+
+    // Show the appropriate modal based on device type
+    if (isMobile) {
+      setShowSignatureBottomSheet(true);
+    } else {
+      setShowSignatureModal(true);
+    }
+  };
+
   const onRemove = async () => {
     try {
+      // Close both popover and sheet regardless of which one is open
+      setShowSignatureOptionsPopover(false);
+      setShowSignatureOptionsSheet(false);
+
+      // Clear the provided signature state to prevent it from being re-applied
+      setProvidedSignature(null);
+      setLocalSignature(null);
+
       const payload: TRemovedSignedFieldWithTokenMutationSchema = {
         token: recipient.token,
         fieldId: field.id,
@@ -227,12 +321,48 @@ export const DocumentSigningSignatureField = ({
     return () => resizeObserver.disconnect();
   }, [signature?.typedSignature]);
 
+  // Adjust placeholder text size to fit container
+  useLayoutEffect(() => {
+    if (!placeholderRef.current || !placeholderContainerRef.current || state !== 'empty') {
+      return;
+    }
+
+    const adjustPlaceholderSize = () => {
+      const container = placeholderContainerRef.current;
+      const text = placeholderRef.current;
+
+      if (!container || !text) {
+        return;
+      }
+
+      let size = 2;
+      text.style.fontSize = `${size}rem`;
+
+      while (
+        (text.scrollWidth > container.clientWidth || text.scrollHeight > container.clientHeight) &&
+        size > 0.8
+      ) {
+        size -= 0.1;
+        text.style.fontSize = `${size}rem`;
+      }
+
+      setPlaceholderFontSize(size);
+    };
+
+    const resizeObserver = new ResizeObserver(adjustPlaceholderSize);
+    resizeObserver.observe(placeholderContainerRef.current);
+
+    adjustPlaceholderSize();
+
+    return () => resizeObserver.disconnect();
+  }, [state]);
+
   return (
     <DocumentSigningFieldContainer
       field={field}
       onPreSign={onPreSign}
       onSign={onSign}
-      onRemove={onRemove}
+      onRemove={onSignedFieldClick}
       type="Signature"
     >
       {isLoading && (
@@ -242,9 +372,18 @@ export const DocumentSigningSignatureField = ({
       )}
 
       {state === 'empty' && (
-        <p className="group-hover:text-primary font-signature text-muted-foreground text-[clamp(0.575rem,25cqw,1.2rem)] text-xl duration-200 group-hover:text-yellow-300">
-          <Trans>Signature</Trans>
-        </p>
+        <div
+          ref={placeholderContainerRef}
+          className="flex h-full w-full items-center justify-center p-2"
+        >
+          <p
+            ref={placeholderRef}
+            className="group-hover:text-primary font-signature text-muted-foreground w-full overflow-hidden text-center leading-tight duration-200 group-hover:text-yellow-300"
+            style={{ fontSize: `${placeholderFontSize}rem` }}
+          >
+            <Trans>Signature</Trans>
+          </p>
+        </div>
       )}
 
       {state === 'signed-image' && signature?.signatureImageAsBase64 && (
@@ -267,6 +406,77 @@ export const DocumentSigningSignatureField = ({
         </div>
       )}
 
+      {/* Desktop: Signature Options Popover - shows above the signature field */}
+      {!isMobile && showSignatureOptionsPopover && (
+        <div
+          ref={optionsRef}
+          className="absolute z-50 min-w-[120px] rounded-md border border-dashed border-blue-200 bg-white p-0 shadow-md"
+          style={{
+            left: '50%',
+            transform: 'translate(-50%, -80%)',
+          }}
+        >
+          <div className="flex flex-col">
+            <button
+              type="button"
+              className="px-6 py-3 text-center transition-colors hover:bg-gray-50"
+              onClick={onChangeSignature}
+            >
+              <span className="text-foreground">Change</span>
+            </button>
+
+            <div className="border-t border-gray-200"></div>
+
+            <button
+              type="button"
+              className="px-6 py-3 text-center transition-colors hover:bg-gray-50"
+              onClick={async () => await onRemove()}
+            >
+              <span className="text-destructive">Clear</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile: Signature Options Sheet - slides up from bottom */}
+      <Sheet
+        open={isMobile && showSignatureOptionsSheet}
+        onOpenChange={setShowSignatureOptionsSheet}
+      >
+        <SheetContent position="bottom" size="sm" className="p-0 pb-0 [&>button]:hidden">
+          <div className="flex flex-col">
+            <button
+              type="button"
+              className="py-4 text-center text-base transition-colors hover:bg-gray-50"
+              onClick={onChangeSignature}
+            >
+              <span className="text-foreground">Change</span>
+            </button>
+
+            <div className="border-t border-gray-200"></div>
+
+            <button
+              type="button"
+              className="py-4 text-center text-base transition-colors hover:bg-gray-50"
+              onClick={async () => await onRemove()}
+            >
+              <span className="text-destructive">Clear</span>
+            </button>
+
+            <div className="border-t border-gray-200"></div>
+
+            <button
+              type="button"
+              className="py-4 text-center text-base transition-colors hover:bg-gray-50"
+              onClick={() => setShowSignatureOptionsSheet(false)}
+            >
+              <span className="text-foreground">Cancel</span>
+            </button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Signature Input Dialog (Desktop) */}
       <Dialog open={showSignatureModal} onOpenChange={setShowSignatureModal}>
         <DialogContent>
           <DialogTitle>
@@ -312,6 +522,55 @@ export const DocumentSigningSignatureField = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Signature Input Sheet (Mobile) */}
+      <Sheet open={showSignatureBottomSheet} onOpenChange={setShowSignatureBottomSheet}>
+        <SheetContent position="bottom" size="content" className="px-0 pt-4 [&>button]:hidden">
+          <div className="flex h-full flex-col">
+            <div className="px-4 pb-2">
+              <h2 className="text-xl font-semibold">
+                <Trans>Sign as {recipient.name}</Trans>
+              </h2>
+              <p className="text-muted-foreground text-sm">{recipient.email}</p>
+            </div>
+
+            <div className="mb-4 flex-grow overflow-auto px-4">
+              <SignaturePad
+                className="mt-2"
+                value={localSignature ?? ''}
+                onChange={({ value }) => setLocalSignature(value)}
+                typedSignatureEnabled={typedSignatureEnabled}
+                uploadSignatureEnabled={uploadSignatureEnabled}
+                drawSignatureEnabled={drawSignatureEnabled}
+              />
+
+              <DocumentSigningDisclosure className="mt-4" />
+            </div>
+
+            <div className="flex flex-col space-y-2 border-t border-gray-200 px-4 py-3">
+              <Button
+                type="button"
+                className="w-full"
+                disabled={!localSignature}
+                onClick={() => onDialogSignClick()}
+              >
+                <Trans>Sign</Trans>
+              </Button>
+              <Button
+                type="button"
+                className="w-full"
+                variant="secondary"
+                onClick={() => {
+                  setShowSignatureBottomSheet(false);
+                  setLocalSignature(null);
+                }}
+              >
+                <Trans>Cancel</Trans>
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </DocumentSigningFieldContainer>
   );
 };

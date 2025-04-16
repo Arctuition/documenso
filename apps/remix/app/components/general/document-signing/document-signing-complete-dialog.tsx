@@ -8,7 +8,10 @@ import { useForm } from 'react-hook-form';
 import { match } from 'ts-pattern';
 import { z } from 'zod';
 
-import { fieldsContainUnsignedRequiredField } from '@documenso/lib/utils/advanced-fields-helpers';
+import {
+  fieldsContainUnsignedRequiredField,
+  isFieldUnsignedAndRequired,
+} from '@documenso/lib/utils/advanced-fields-helpers';
 import { Button } from '@documenso/ui/primitives/button';
 import {
   Dialog,
@@ -75,6 +78,11 @@ export const DocumentSigningCompleteDialog = ({
 
   const isComplete = useMemo(() => !fieldsContainUnsignedRequiredField(fields), [fields]);
 
+  // Count the number of unsigned required fields
+  const unsignedFieldsCount = useMemo(() => {
+    return fields.filter(isFieldUnsignedAndRequired).length;
+  }, [fields]);
+
   const handleOpenChange = (open: boolean) => {
     if (form.formState.isSubmitting || !isComplete) {
       return;
@@ -111,20 +119,20 @@ export const DocumentSigningCompleteDialog = ({
     <Dialog open={showDialog} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
-          className="w-full"
+          className="w-full text-xs md:text-base"
           type="button"
-          size="lg"
+          size="default"
           onClick={fieldsValidated}
           loading={isSubmitting}
           disabled={disabled}
         >
           {match({ isComplete, role })
-            .with({ isComplete: false }, () => <Trans>Next field</Trans>)
+            .with({ isComplete: false }, () => <Trans>Next field({unsignedFieldsCount})</Trans>)
             .with({ isComplete: true, role: RecipientRole.APPROVER }, () => <Trans>Approve</Trans>)
             .with({ isComplete: true, role: RecipientRole.VIEWER }, () => (
               <Trans>Mark as viewed</Trans>
             ))
-            .with({ isComplete: true }, () => <Trans>Complete</Trans>)
+            .with({ isComplete: true }, () => <Trans>Finish</Trans>)
             .exhaustive()}
         </Button>
       </DialogTrigger>

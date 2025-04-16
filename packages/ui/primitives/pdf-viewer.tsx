@@ -221,7 +221,7 @@ export const PDFViewer = ({
             {Array(numPages)
               .fill(null)
               .map((_, i) => (
-                <div key={i} className="last:-mb-2">
+                <div key={i} className="mb-1 last:-mb-2">
                   <div className="border-border overflow-hidden rounded border will-change-transform">
                     <PDFPage
                       pageNumber={i + 1}
@@ -232,11 +232,11 @@ export const PDFViewer = ({
                       onClick={(e) => onDocumentPageClick(e, i + 1)}
                     />
                   </div>
-                  <p className="text-muted-foreground/80 my-2 text-center text-[11px]">
+                  {/* <p className="text-muted-foreground/80 my-2 text-center text-[11px]">
                     <Trans>
                       Page {i + 1} of {numPages}
                     </Trans>
-                  </p>
+                  </p> */}
                 </div>
               ))}
           </PDFDocument>

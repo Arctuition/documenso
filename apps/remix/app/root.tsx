@@ -12,6 +12,7 @@ import {
   useLoaderData,
   useLocation,
 } from 'react-router';
+import { Theme } from 'remix-themes';
 import { PreventFlashOnWrongTheme, ThemeProvider, useTheme } from 'remix-themes';
 
 import { getOptionalSession } from '@documenso/auth/server/lib/utils/get-session';
@@ -28,7 +29,7 @@ import type { Route } from './+types/root';
 import stylesheet from './app.css?url';
 import { GenericErrorLayout } from './components/general/generic-error-layout';
 import { langCookie } from './storage/lang-cookie.server';
-import { themeSessionResolver } from './storage/theme-session.server';
+// import { themeSessionResolver } from './storage/theme-session.server';
 import { appMetaTags } from './utils/meta';
 
 const { trackPageview } = Plausible({
@@ -74,18 +75,20 @@ export async function loader({ request }: Route.LoaderArgs) {
     teams = await getTeams({ userId: session.user.id });
   }
 
-  const { getTheme } = await themeSessionResolver(request);
+  // const { getTheme } = await themeSessionResolver(request);
 
   let lang: SupportedLanguageCodes = await langCookie.parse(request.headers.get('cookie') ?? '');
 
   if (!APP_I18N_OPTIONS.supportedLangs.includes(lang)) {
     lang = extractLocaleData({ headers: request.headers }).lang;
   }
+  // const theme = getTheme();
 
   return data(
     {
       lang,
-      theme: getTheme(),
+      // theme: getTheme(),
+      theme: Theme.LIGHT,
       session: session.isAuthenticated
         ? {
             user: session.user,

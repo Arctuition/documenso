@@ -171,14 +171,28 @@ export const DocumentSigningFieldContainer = ({
           </button>
         )}
 
-        {type !== 'Date' && type !== 'Checkbox' && field.inserted && !loading && !readOnlyField && (
+        {/* For signature fields, provide a click handler but no visible "Remove" text */}
+        {type === 'Signature' && field.inserted && !loading && !readOnlyField && (
           <button
-            className="text-destructive bg-background/50 absolute inset-0 z-10 flex h-full w-full items-center justify-center rounded-md text-sm opacity-0 duration-200 group-hover:opacity-100"
+            className="absolute inset-0 z-10 h-full w-full"
             onClick={onRemoveSignedFieldClick}
-          >
-            <Trans>Remove</Trans>
-          </button>
+          />
         )}
+
+        {/* For other fields (not Date, Checkbox, or Signature), show the "Remove" text on hover */}
+        {type !== 'Date' &&
+          type !== 'Checkbox' &&
+          type !== 'Signature' &&
+          field.inserted &&
+          !loading &&
+          !readOnlyField && (
+            <button
+              className="text-destructive bg-background/50 absolute inset-0 z-10 flex h-full w-full items-center justify-center rounded-md text-sm opacity-0 duration-200 group-hover:opacity-100"
+              onClick={onRemoveSignedFieldClick}
+            >
+              <Trans>Remove</Trans>
+            </button>
+          )}
 
         {(field.type === FieldType.RADIO || field.type === FieldType.CHECKBOX) &&
           field.fieldMeta?.label && (
