@@ -1,3 +1,5 @@
+import { useLayoutEffect, useRef, useState } from 'react';
+
 import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react';
 import { Trans } from '@lingui/react/macro';
@@ -127,6 +129,45 @@ export const DocumentSigningDateField = ({
     }
   };
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dateTextRef = useRef<HTMLParagraphElement>(null);
+  const [fontSize, setFontSize] = useState(1);
+
+  useLayoutEffect(() => {
+    if (!dateTextRef.current || !containerRef.current || !field.inserted) {
+      return;
+    }
+
+    const adjustTextSize = () => {
+      const container = containerRef.current;
+      const text = dateTextRef.current;
+
+      if (!container || !text) {
+        return;
+      }
+
+      let size = 1;
+      text.style.fontSize = `${size}rem`;
+
+      while (
+        (text.scrollWidth > container.clientWidth || text.scrollHeight > container.clientHeight) &&
+        size > 0.2
+      ) {
+        size -= 0.05;
+        text.style.fontSize = `${size}rem`;
+      }
+
+      setFontSize(size);
+    };
+
+    const resizeObserver = new ResizeObserver(adjustTextSize);
+    resizeObserver.observe(containerRef.current);
+
+    adjustTextSize();
+
+    return () => resizeObserver.disconnect();
+  }, [field.inserted, localDateString]);
+
   return (
     <DocumentSigningFieldContainer
       field={field}
@@ -148,17 +189,15 @@ export const DocumentSigningDateField = ({
       )}
 
       {field.inserted && (
-        <div className="flex h-full w-full items-center">
+        <div ref={containerRef} className="flex h-full w-full items-center">
           <p
-            className={cn(
-              'text-muted-foreground dark:text-background/80 w-full text-[clamp(0.425rem,25cqw,0.825rem)] text-xs duration-200',
-              {
-                'text-left': parsedFieldMeta?.textAlign === 'left',
-                'text-center':
-                  !parsedFieldMeta?.textAlign || parsedFieldMeta?.textAlign === 'center',
-                'text-right': parsedFieldMeta?.textAlign === 'right',
-              },
-            )}
+            ref={dateTextRef}
+            style={{ fontSize: `${fontSize}rem` }}
+            className={cn('text-muted-foreground dark:text-background/80 w-full duration-200', {
+              'text-left': parsedFieldMeta?.textAlign === 'left',
+              'text-center': !parsedFieldMeta?.textAlign || parsedFieldMeta?.textAlign === 'center',
+              'text-right': parsedFieldMeta?.textAlign === 'right',
+            })}
           >
             {localDateString}
           </p>
