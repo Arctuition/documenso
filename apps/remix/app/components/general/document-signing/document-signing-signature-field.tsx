@@ -95,6 +95,26 @@ export const DocumentSigningSignatureField = ({
     // Clean up event listener
     return () => window.removeEventListener('resize', checkIsMobile);
   }, []);
+
+  // Handle click outside to dismiss the popup
+  useEffect(() => {
+    if (!showSignatureOptionsPopover) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (optionsRef.current && !optionsRef.current.contains(event.target as Node)) {
+        setShowSignatureOptionsPopover(false);
+      }
+    };
+
+    // Add the event listener
+    document.addEventListener('mousedown', handleClickOutside);
+
+    // Clean up
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSignatureOptionsPopover]);
+
   const [localSignature, setLocalSignature] = useState<string | null>(null);
 
   const state = useMemo<SignatureFieldState>(() => {
