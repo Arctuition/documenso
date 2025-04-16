@@ -129,53 +129,55 @@ export const DocumentSigningPageView = ({
   return (
     <DocumentSigningRecipientProvider recipient={recipient} targetSigner={selectedSigner ?? null}>
       <div className="mx-auto w-full max-w-screen-xl">
-        <h1
-          className="mt-4 block max-w-[20rem] truncate text-2xl font-semibold md:max-w-[30rem] md:text-3xl"
-          title={document.title}
-        >
-          {document.title}
-        </h1>
+        <div className="bg-background fixed left-0 top-0 z-20 flex w-full flex-col items-start gap-2 border-b border-gray-200 px-6 py-4 shadow">
+          <h1
+            className="block max-w-[20rem] truncate text-2xl font-semibold md:max-w-[30rem] md:text-3xl"
+            title={document.title}
+          >
+            {document.title}
+          </h1>
 
-        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-x-6">
-          <div className="max-w-[50ch]">
-            <span className="text-muted-foreground">
-              {match(recipient.role)
-                .with(RecipientRole.VIEWER, () =>
-                  document.teamId && !shouldUseTeamDetails ? (
-                    <Trans>
-                      on behalf of "{document.team?.name}" has invited you to view this document
-                    </Trans>
-                  ) : (
-                    <Trans>has invited you to view this document</Trans>
-                  ),
-                )
-                .with(RecipientRole.SIGNER, () => 'You are invited to sign this document')
-                .with(RecipientRole.APPROVER, () => 'You are invited to sign this document')
-                .with(RecipientRole.ASSISTANT, () =>
-                  document.teamId && !shouldUseTeamDetails ? (
-                    <Trans>
-                      on behalf of "{document.team?.name}" has invited you to assist this document
-                    </Trans>
-                  ) : (
-                    <Trans>has invited you to assist this document</Trans>
-                  ),
-                )
-                .otherwise(() => null)}
-            </span>
-          </div>
-          <div>
-            <DocumentSigningNextField
-              document={document}
-              recipient={recipient}
-              fields={fields}
-              redirectUrl={recipient.redirectUrl ?? documentMeta?.redirectUrl}
-              isRecipientsTurn={isRecipientsTurn}
-              allRecipients={allRecipients}
-            />
+          <div className="flex w-full flex-wrap items-center justify-between gap-x-6">
+            <div className="max-w-[50ch]">
+              <span className="text-muted-foreground">
+                {match(recipient.role)
+                  .with(RecipientRole.VIEWER, () =>
+                    document.teamId && !shouldUseTeamDetails ? (
+                      <Trans>
+                        on behalf of "{document.team?.name}" has invited you to view this document
+                      </Trans>
+                    ) : (
+                      <Trans>has invited you to view this document</Trans>
+                    ),
+                  )
+                  .with(RecipientRole.SIGNER, () => 'You are invited to sign this document')
+                  .with(RecipientRole.APPROVER, () => 'You are invited to sign this document')
+                  .with(RecipientRole.ASSISTANT, () =>
+                    document.teamId && !shouldUseTeamDetails ? (
+                      <Trans>
+                        on behalf of "{document.team?.name}" has invited you to assist this document
+                      </Trans>
+                    ) : (
+                      <Trans>has invited you to assist this document</Trans>
+                    ),
+                  )
+                  .otherwise(() => null)}
+              </span>
+            </div>
+            <div>
+              <DocumentSigningNextField
+                document={document}
+                recipient={recipient}
+                fields={fields}
+                redirectUrl={recipient.redirectUrl ?? documentMeta?.redirectUrl}
+                isRecipientsTurn={isRecipientsTurn}
+                allRecipients={allRecipients}
+              />
+            </div>
           </div>
         </div>
 
-        <div className="mt-8 grid grid-cols-12 gap-y-8 lg:gap-x-8 lg:gap-y-0">
+        <div className="mt-[140px] grid grid-cols-12 gap-y-8 lg:gap-x-8 lg:gap-y-0">
           <Card className="col-span-12 rounded-xl before:rounded-xl" gradient>
             <CardContent className="p-2">
               <PDFViewer key={documentData.id} documentData={documentData} document={document} />
