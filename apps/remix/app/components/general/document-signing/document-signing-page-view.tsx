@@ -178,7 +178,7 @@ export const DocumentSigningPageView = ({
         </div>
 
         <div className="mt-[140px] grid grid-cols-12 gap-y-8 lg:gap-x-8 lg:gap-y-0">
-          <div className="col-span-12 rounded-xl before:rounded-xl" gradient>
+          <div className="col-span-12 rounded-xl before:rounded-xl">
             <CardContent className="p-0">
               <PDFViewer key={documentData.id} documentData={documentData} document={document} />
             </CardContent>
