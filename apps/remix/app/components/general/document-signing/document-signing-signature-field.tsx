@@ -547,7 +547,7 @@ export const DocumentSigningSignatureField = ({
               <DocumentSigningDisclosure className="mt-4" />
             </div>
 
-            <div className="flex flex-col space-y-2 border-t border-gray-200 px-4 py-3">
+            <div className="flex space-x-2 border-t border-gray-200 px-4 pb-0 pt-3">
               <Button
                 type="button"
                 className="w-full"
