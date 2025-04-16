@@ -40,7 +40,7 @@ import { DocumentSigningSignatureField } from '~/components/general/document-sig
 import { DocumentSigningTextField } from '~/components/general/document-signing/document-signing-text-field';
 import { DocumentReadOnlyFields } from '~/components/general/document/document-read-only-fields';
 
-import { DocumentSigningNextField } from './documeng-signin-next-field';
+import { DocumentSigningNextField } from './document-signin-next-field';
 import { DocumentSigningRecipientProvider } from './document-signing-recipient-provider';
 
 export type DocumentSigningPageViewProps = {
@@ -129,17 +129,17 @@ export const DocumentSigningPageView = ({
   return (
     <DocumentSigningRecipientProvider recipient={recipient} targetSigner={selectedSigner ?? null}>
       <div className="mx-auto w-full max-w-screen-xl pt-0">
-        <div className="bg-background z-9999 fixed left-0 top-0 flex w-full flex-col items-start gap-2 border-b border-gray-200 px-6 py-4 shadow">
-          <h1
-            className="block max-w-[20rem] truncate text-2xl font-semibold md:max-w-[30rem] md:text-3xl"
-            title={document.title}
-          >
-            {document.title}
-          </h1>
+        <div className="bg-background z-9999 fixed left-0 top-0 w-full border-b border-gray-200 shadow">
+          <div className="mx-auto flex w-full max-w-screen-xl flex-row items-center justify-between px-3 py-3 md:px-6 md:py-4">
+            <div className="flex flex-col">
+              <h1
+                className="block max-w-[16rem] truncate text-lg font-semibold md:max-w-[30rem] md:text-2xl lg:text-3xl"
+                title={document.title}
+              >
+                {document.title}
+              </h1>
 
-          <div className="flex w-full flex-wrap items-center justify-between gap-x-6">
-            <div className="max-w-[50ch]">
-              <span className="text-muted-foreground">
+              <span className="text-muted-foreground mt-1 max-w-[50ch] text-xs md:text-sm">
                 {match(recipient.role)
                   .with(RecipientRole.VIEWER, () =>
                     document.teamId && !shouldUseTeamDetails ? (
@@ -164,7 +164,8 @@ export const DocumentSigningPageView = ({
                   .otherwise(() => null)}
               </span>
             </div>
-            <div>
+
+            <div className="ml-4 flex items-center">
               <DocumentSigningNextField
                 document={document}
                 recipient={recipient}

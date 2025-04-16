@@ -119,9 +119,9 @@ export const DocumentSigningCompleteDialog = ({
     <Dialog open={showDialog} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
-          className="w-full"
+          className="w-full text-xs md:text-base"
           type="button"
-          size="lg"
+          size="default"
           onClick={fieldsValidated}
           loading={isSubmitting}
           disabled={disabled}
