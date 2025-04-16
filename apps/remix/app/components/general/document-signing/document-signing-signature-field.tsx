@@ -6,6 +6,7 @@ import { Trans } from '@lingui/react/macro';
 import { Loader } from 'lucide-react';
 import { useRevalidator } from 'react-router';
 
+import { useIsMobile } from '@documenso/lib/client-only/hooks/use-is-mobile';
 import { DO_NOT_INVALIDATE_QUERY_ON_MUTATION } from '@documenso/lib/constants/trpc';
 import { AppError, AppErrorCode } from '@documenso/lib/errors/app-error';
 import type { TRecipientActionAuth } from '@documenso/lib/types/document-auth';
@@ -82,23 +83,7 @@ export const DocumentSigningSignatureField = ({
   const [showSignatureOptionsPopover, setShowSignatureOptionsPopover] = useState(false);
   const [showSignatureOptionsSheet, setShowSignatureOptionsSheet] = useState(false);
   const [showSignatureBottomSheet, setShowSignatureBottomSheet] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Check if the device is mobile based on screen width
-  useEffect(() => {
-    const checkIsMobile = () => {
-      setIsMobile(window.innerWidth < 768); // 768px is standard tablet breakpoint
-    };
-
-    // Check on initial load
-    checkIsMobile();
-
-    // Add event listener for window resize
-    window.addEventListener('resize', checkIsMobile);
-
-    // Clean up event listener
-    return () => window.removeEventListener('resize', checkIsMobile);
-  }, []);
+  const isMobile = useIsMobile();
 
   // Handle click outside to dismiss the popup
   useEffect(() => {
@@ -427,9 +412,8 @@ export const DocumentSigningSignatureField = ({
           ref={optionsRef}
           className="absolute z-50 min-w-[120px] rounded-md border border-dashed border-blue-200 bg-white p-0 shadow-md"
           style={{
-            top: '-80px', // Position it well above the signature field
             left: '50%',
-            transform: 'translateX(-50%)',
+            transform: 'translate(-50%, -80%)',
           }}
         >
           <div className="flex flex-col">
