@@ -1,3 +1,5 @@
+import { useLayoutEffect, useRef, useState } from 'react';
+
 import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react';
 import { Trans } from '@lingui/react/macro';
@@ -24,6 +26,63 @@ export type DocumentSigningInitialsFieldProps = {
   field: FieldWithSignature;
   onSignField?: (value: TSignFieldWithTokenMutationSchema) => Promise<void> | void;
   onUnsignField?: (value: TRemovedSignedFieldWithTokenMutationSchema) => Promise<void> | void;
+};
+
+const InitialsTextWithResponsiveFontSize = () => {
+  const [fontSize, setFontSize] = useState(0.625); // Default to mid-size between 0.425rem and 0.825rem
+  const textRef = useRef<HTMLSpanElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!textRef.current || !containerRef.current) {
+      return;
+    }
+
+    const adjustTextSize = () => {
+      const container = containerRef.current;
+      const text = textRef.current;
+
+      if (!container || !text) {
+        return;
+      }
+
+      let size = 0.625; // Start with a reasonable size
+      text.style.fontSize = `${size}rem`;
+
+      // Reduce font size until text fits the container
+      while (
+        (text.scrollWidth > container.clientWidth || text.scrollHeight > container.clientHeight) &&
+        size > 0.2
+      ) {
+        size -= 0.05;
+        text.style.fontSize = `${size}rem`;
+      }
+
+      setFontSize(size);
+    };
+
+    const resizeObserver = new ResizeObserver(adjustTextSize);
+    resizeObserver.observe(containerRef.current);
+
+    adjustTextSize();
+
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      className="flex h-full w-full items-center justify-center overflow-hidden"
+    >
+      <span
+        ref={textRef}
+        style={{ fontSize: `${fontSize}rem` }}
+        className="text-muted-foreground group-hover:text-primary whitespace-nowrap duration-200 group-hover:text-yellow-300"
+      >
+        <Trans>Initials</Trans>
+      </span>
+    </div>
+  );
 };
 
 export const DocumentSigningInitialsField = ({
@@ -128,11 +187,7 @@ export const DocumentSigningInitialsField = ({
         </div>
       )}
 
-      {!field.inserted && (
-        <p className="group-hover:text-primary text-muted-foreground text-[clamp(0.425rem,25cqw,0.825rem)] duration-200 group-hover:text-yellow-300">
-          <Trans>Initials</Trans>
-        </p>
-      )}
+      {!field.inserted && <InitialsTextWithResponsiveFontSize />}
 
       {field.inserted && (
         <p className="text-muted-foreground dark:text-background/80 text-[clamp(0.425rem,25cqw,0.825rem)] duration-200">
