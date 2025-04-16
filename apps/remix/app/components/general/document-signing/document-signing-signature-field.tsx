@@ -54,6 +54,7 @@ export const DocumentSigningSignatureField = ({
 
   const signatureRef = useRef<HTMLParagraphElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const optionsRef = useRef<HTMLDivElement>(null);
   const [fontSize, setFontSize] = useState(2);
 
   const { signature: providedSignature, setSignature: setProvidedSignature } =
@@ -74,7 +75,7 @@ export const DocumentSigningSignatureField = ({
   const isLoading = isSignFieldWithTokenLoading || isRemoveSignedFieldWithTokenLoading;
 
   const [showSignatureModal, setShowSignatureModal] = useState(false);
-  const [showSignatureOptionsModal, setShowSignatureOptionsModal] = useState(false);
+  const [showSignatureOptionsPopover, setShowSignatureOptionsPopover] = useState(false);
   const [localSignature, setLocalSignature] = useState<string | null>(null);
 
   const state = useMemo<SignatureFieldState>(() => {
@@ -167,20 +168,20 @@ export const DocumentSigningSignatureField = ({
     }
   };
 
-  // This shows the options dialog when an already signed field is clicked
+  // This shows the options popover when an already signed field is clicked
   const onSignedFieldClick = () => {
-    setShowSignatureOptionsModal(true);
+    setShowSignatureOptionsPopover(true);
   };
 
-  // Handle the "Change" button click in the options dialog
+  // Handle the "Change" button click in the options popover
   const onChangeSignature = () => {
-    setShowSignatureOptionsModal(false);
+    setShowSignatureOptionsPopover(false);
     setShowSignatureModal(true);
   };
 
   const onRemove = async () => {
     try {
-      setShowSignatureOptionsModal(false);
+      setShowSignatureOptionsPopover(false);
 
       const payload: TRemovedSignedFieldWithTokenMutationSchema = {
         token: recipient.token,
@@ -281,29 +282,39 @@ export const DocumentSigningSignatureField = ({
         </div>
       )}
 
-      {/* Signature Options Dialog - shows "Change" and "Clear" buttons when clicking a signed field */}
-      <Dialog open={showSignatureOptionsModal} onOpenChange={setShowSignatureOptionsModal}>
-        <DialogContent className="sm:max-w-xs">
-          <DialogTitle>
-            <Trans>Signature Options</Trans>
-          </DialogTitle>
-
-          <div className="mt-4 flex flex-col gap-3">
-            <Button type="button" className="w-full" onClick={onChangeSignature}>
-              <Trans>Change</Trans>
-            </Button>
-
-            <Button
+      {/* Signature Options Popover - shows "Change" and "Clear" buttons when clicking a signed field */}
+      {/* Custom positioned popup that appears above the signature field */}
+      {showSignatureOptionsPopover && (
+        <div
+          ref={optionsRef}
+          className="absolute z-50 min-w-[120px] rounded-md border border-dashed border-blue-200 bg-white p-0 shadow-md"
+          style={{
+            top: '-80px', // Position it well above the signature field
+            left: '50%',
+            transform: 'translateX(-50%)',
+          }}
+        >
+          <div className="flex flex-col">
+            <button
               type="button"
-              variant="outline"
-              className="border-destructive text-destructive hover:bg-destructive/10 w-full"
+              className="px-6 py-3 text-center transition-colors hover:bg-gray-50"
+              onClick={onChangeSignature}
+            >
+              <span className="text-foreground">Change</span>
+            </button>
+
+            <div className="border-t border-gray-200"></div>
+
+            <button
+              type="button"
+              className="px-6 py-3 text-center transition-colors hover:bg-gray-50"
               onClick={async () => await onRemove()}
             >
-              <Trans>Clear</Trans>
-            </Button>
+              <span className="text-destructive">Clear</span>
+            </button>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
 
       {/* Signature Input Dialog */}
       <Dialog open={showSignatureModal} onOpenChange={setShowSignatureModal}>
