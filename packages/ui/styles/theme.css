@@ -28,9 +28,10 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
 
-    --primary: 95.08 71.08% 67.45%;
-    --primary-foreground: 95.08 71.08% 10%;
-
+    /* --primary: 95.08 71.08% 67.45%; */
+    /* --primary-foreground: 95.08 71.08% 10%; */
+    --primary: 216 70% 59%;
+    --primary-foreground: 0 0% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
 
@@ -190,7 +191,9 @@
 
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: 'rlig' 1, 'calt' 1;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
   }
 }
 
@@ -210,8 +213,12 @@
 }
 
 .gradient-border-mask::before {
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   mask-composite: exclude;
   -webkit-mask-composite: xor;
 }
