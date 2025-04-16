@@ -81,6 +81,7 @@ export const DocumentSigningSignatureField = ({
   const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [showSignatureOptionsPopover, setShowSignatureOptionsPopover] = useState(false);
   const [showSignatureOptionsSheet, setShowSignatureOptionsSheet] = useState(false);
+  const [showSignatureBottomSheet, setShowSignatureBottomSheet] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   // Check if the device is mobile based on screen width
@@ -143,7 +144,11 @@ export const DocumentSigningSignatureField = ({
     // Show the signature modal if this is the first field being signed
     // or if the existing signature was cleared
     if (!field.inserted || !providedSignature) {
-      setShowSignatureModal(true);
+      if (isMobile) {
+        setShowSignatureBottomSheet(true);
+      } else {
+        setShowSignatureModal(true);
+      }
       return false;
     }
 
@@ -154,6 +159,7 @@ export const DocumentSigningSignatureField = ({
    */
   const onDialogSignClick = () => {
     setShowSignatureModal(false);
+    setShowSignatureBottomSheet(false);
 
     if (!localSignature) {
       return;
@@ -252,7 +258,13 @@ export const DocumentSigningSignatureField = ({
 
     // Clear any existing signature data to start fresh
     setLocalSignature(null);
-    setShowSignatureModal(true);
+
+    // Show the appropriate modal based on device type
+    if (isMobile) {
+      setShowSignatureBottomSheet(true);
+    } else {
+      setShowSignatureModal(true);
+    }
   };
 
   const onRemove = async () => {
@@ -480,7 +492,7 @@ export const DocumentSigningSignatureField = ({
         </SheetContent>
       </Sheet>
 
-      {/* Signature Input Dialog */}
+      {/* Signature Input Dialog (Desktop) */}
       <Dialog open={showSignatureModal} onOpenChange={setShowSignatureModal}>
         <DialogContent>
           <DialogTitle>
@@ -526,6 +538,55 @@ export const DocumentSigningSignatureField = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Signature Input Sheet (Mobile) */}
+      <Sheet open={showSignatureBottomSheet} onOpenChange={setShowSignatureBottomSheet}>
+        <SheetContent position="bottom" size="content" className="px-0 pt-4 [&>button]:hidden">
+          <div className="flex h-full flex-col">
+            <div className="px-4 pb-2">
+              <h2 className="text-xl font-semibold">
+                <Trans>Sign as {recipient.name}</Trans>
+              </h2>
+              <p className="text-muted-foreground text-sm">{recipient.email}</p>
+            </div>
+
+            <div className="mb-4 flex-grow overflow-auto px-4">
+              <SignaturePad
+                className="mt-2"
+                value={localSignature ?? ''}
+                onChange={({ value }) => setLocalSignature(value)}
+                typedSignatureEnabled={typedSignatureEnabled}
+                uploadSignatureEnabled={uploadSignatureEnabled}
+                drawSignatureEnabled={drawSignatureEnabled}
+              />
+
+              <DocumentSigningDisclosure className="mt-4" />
+            </div>
+
+            <div className="flex flex-col space-y-2 border-t border-gray-200 px-4 py-3">
+              <Button
+                type="button"
+                className="w-full"
+                disabled={!localSignature}
+                onClick={() => onDialogSignClick()}
+              >
+                <Trans>Sign</Trans>
+              </Button>
+              <Button
+                type="button"
+                className="w-full"
+                variant="secondary"
+                onClick={() => {
+                  setShowSignatureBottomSheet(false);
+                  setLocalSignature(null);
+                }}
+              >
+                <Trans>Cancel</Trans>
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </DocumentSigningFieldContainer>
   );
 };
