@@ -22,7 +22,7 @@ import type { CompletedField } from '@documenso/lib/types/fields';
 import type { FieldWithSignatureAndFieldMeta } from '@documenso/prisma/types/field-with-signature-and-fieldmeta';
 import type { RecipientWithFields } from '@documenso/prisma/types/recipient-with-fields';
 import { trpc } from '@documenso/trpc/react';
-import { Card, CardContent } from '@documenso/ui/primitives/card';
+import { CardContent } from '@documenso/ui/primitives/card';
 import { ElementVisible } from '@documenso/ui/primitives/element-visible';
 import { PDFViewer } from '@documenso/ui/primitives/pdf-viewer';
 import { useToast } from '@documenso/ui/primitives/use-toast';
@@ -178,11 +178,11 @@ export const DocumentSigningPageView = ({
         </div>
 
         <div className="mt-[140px] grid grid-cols-12 gap-y-8 lg:gap-x-8 lg:gap-y-0">
-          <Card className="col-span-12 rounded-xl before:rounded-xl" gradient>
-            <CardContent className="p-2">
+          <div className="col-span-12 rounded-xl before:rounded-xl" gradient>
+            <CardContent className="p-0">
               <PDFViewer key={documentData.id} documentData={documentData} document={document} />
             </CardContent>
-          </Card>
+          </div>
 
           {/* <div className="col-span-12 hidden lg:col-span-5 xl:col-span-4">
             <DocumentSigningForm
