@@ -130,7 +130,15 @@ export const DocumentSigningSignatureField = ({
   }, [field.inserted, signature?.signatureImageAsBase64]);
 
   const onPreSign = () => {
-    // When the field is empty or was previously cleared, always show the signature modal
+    // If the field is not inserted (empty) but we already have a signature from another field
+    // don't show the modal and directly apply the existing signature
+    if (!field.inserted && providedSignature) {
+      // We already have a signature from another field, so apply it directly
+      return true;
+    }
+
+    // Show the signature modal if this is the first field being signed
+    // or if the existing signature was cleared
     if (!field.inserted || !providedSignature) {
       setShowSignatureModal(true);
       return false;
