@@ -132,7 +132,7 @@ export const DocumentSigningCompleteDialog = ({
             .with({ isComplete: true, role: RecipientRole.VIEWER }, () => (
               <Trans>Mark as viewed</Trans>
             ))
-            .with({ isComplete: true }, () => <Trans>Complete</Trans>)
+            .with({ isComplete: true }, () => <Trans>Finish</Trans>)
             .exhaustive()}
         </Button>
       </DialogTrigger>

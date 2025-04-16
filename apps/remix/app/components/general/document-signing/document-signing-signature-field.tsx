@@ -91,7 +91,8 @@ export const DocumentSigningSignatureField = ({
   }, [field.inserted, signature?.signatureImageAsBase64]);
 
   const onPreSign = () => {
-    if (!providedSignature) {
+    // When the field is empty or was previously cleared, always show the signature modal
+    if (!field.inserted || !providedSignature) {
       setShowSignatureModal(true);
       return false;
     }
@@ -182,6 +183,10 @@ export const DocumentSigningSignatureField = ({
   const onRemove = async () => {
     try {
       setShowSignatureOptionsPopover(false);
+
+      // Clear the provided signature state to prevent it from being re-applied
+      setProvidedSignature(null);
+      setLocalSignature(null);
 
       const payload: TRemovedSignedFieldWithTokenMutationSchema = {
         token: recipient.token,
