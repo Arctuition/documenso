@@ -183,7 +183,10 @@ export const DocumentSigningDateField = ({
       )}
 
       {!field.inserted && (
-        <p className="group-hover:text-primary text-muted-foreground text-[clamp(0.425rem,25cqw,0.825rem)] duration-200 group-hover:text-yellow-300">
+        <p
+          style={{ fontSize: `${fontSize * 1.3}rem` }}
+          className="group-hover:text-primary text-muted-foreground text-[clamp(0.425rem,25cqw,0.825rem)] duration-200 group-hover:text-yellow-300"
+        >
           <Trans>Date</Trans>
         </p>
       )}
