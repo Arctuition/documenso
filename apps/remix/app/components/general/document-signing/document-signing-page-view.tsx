@@ -128,8 +128,8 @@ export const DocumentSigningPageView = ({
 
   return (
     <DocumentSigningRecipientProvider recipient={recipient} targetSigner={selectedSigner ?? null}>
-      <div className="mx-auto w-full max-w-screen-xl">
-        <div className="bg-background fixed left-0 top-0 z-20 flex w-full flex-col items-start gap-2 border-b border-gray-200 px-6 py-4 shadow">
+      <div className="mx-auto w-full max-w-screen-xl pt-1">
+        <div className="bg-background z-9999 fixed left-0 top-0 flex w-full flex-col items-start gap-2 border-b border-gray-200 px-6 py-4 shadow">
           <h1
             className="block max-w-[20rem] truncate text-2xl font-semibold md:max-w-[30rem] md:text-3xl"
             title={document.title}
