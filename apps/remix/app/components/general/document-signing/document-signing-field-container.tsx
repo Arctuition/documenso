@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 
 import { Trans } from '@lingui/react/macro';
 import { FieldType } from '@prisma/client';
@@ -50,6 +50,59 @@ export type DocumentSigningFieldContainerProps = {
     | 'Number'
     | 'Checkbox';
   tooltipText?: string | null;
+};
+
+const RemoveTextWithResponsiveFontSize = () => {
+  const [fontSize, setFontSize] = useState(0.875); // Default to text-sm (0.875rem)
+  const textRef = useRef<HTMLSpanElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!textRef.current || !containerRef.current) {
+      return;
+    }
+
+    const adjustTextSize = () => {
+      const container = containerRef.current;
+      const text = textRef.current;
+
+      if (!container || !text) {
+        return;
+      }
+
+      let size = 0.875; // Start with text-sm (0.875rem)
+      text.style.fontSize = `${size}rem`;
+
+      // Reduce font size until text fits the container
+      while (
+        (text.scrollWidth > container.clientWidth || text.scrollHeight > container.clientHeight) &&
+        size > 0.2
+      ) {
+        size -= 0.05;
+        text.style.fontSize = `${size}rem`;
+      }
+
+      setFontSize(size);
+    };
+
+    const resizeObserver = new ResizeObserver(adjustTextSize);
+    resizeObserver.observe(containerRef.current);
+
+    adjustTextSize();
+
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      className="flex h-full w-full items-center justify-center overflow-hidden"
+    >
+      <span ref={textRef} style={{ fontSize: `${fontSize}rem` }} className="whitespace-nowrap">
+        <Trans>Remove</Trans>
+      </span>
+    </div>
+  );
 };
 
 export const DocumentSigningFieldContainer = ({
@@ -187,10 +240,10 @@ export const DocumentSigningFieldContainer = ({
           !loading &&
           !readOnlyField && (
             <button
-              className="text-destructive bg-background/50 absolute inset-0 z-10 flex h-full w-full items-center justify-center rounded-md text-sm opacity-0 duration-200 group-hover:opacity-100"
+              className="text-destructive bg-background/50 absolute inset-0 z-10 flex h-full w-full items-center justify-center rounded-md opacity-0 duration-200 group-hover:opacity-100"
               onClick={onRemoveSignedFieldClick}
             >
-              <Trans>Remove</Trans>
+              <RemoveTextWithResponsiveFontSize />
             </button>
           )}
 
