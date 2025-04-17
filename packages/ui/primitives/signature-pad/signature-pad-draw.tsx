@@ -68,7 +68,7 @@ export const SignaturePadDraw = ({
   const [selectedColor, setSelectedColor] = useState('black');
 
   const perfectFreehandOptions = useMemo(() => {
-    const size = $el.current ? Math.min($el.current.height, $el.current.width) * 0.03 : 10;
+    const size = $el.current ? Math.min($el.current.height, $el.current.width) * 0.05 : 15;
 
     return {
       size,
