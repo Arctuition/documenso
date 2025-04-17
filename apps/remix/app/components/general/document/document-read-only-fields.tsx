@@ -110,7 +110,7 @@ export const DocumentReadOnlyFields = ({
                 </PopoverHover>
               </div>
 
-              <div className="text-muted-foreground dark:text-background/70 break-all text-sm">
+              <div className="text-muted-foreground dark:text-background/70 h-full break-all text-sm">
                 {field.recipient.signingStatus === SigningStatus.SIGNED &&
                   match(field)
                     .with({ type: FieldType.SIGNATURE }, (field) =>
