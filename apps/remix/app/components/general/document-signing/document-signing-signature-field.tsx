@@ -77,7 +77,9 @@ export const DocumentSigningSignatureField = ({
 
   const { signature } = field;
 
-  const isLoading = isSignFieldWithTokenLoading || isRemoveSignedFieldWithTokenLoading;
+  const [isSigning, setIsSigning] = useState(false);
+
+  const isLoading = isSignFieldWithTokenLoading || isRemoveSignedFieldWithTokenLoading || isSigning;
 
   const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [showSignatureOptionsPopover, setShowSignatureOptionsPopover] = useState(false);
@@ -117,6 +119,13 @@ export const DocumentSigningSignatureField = ({
 
     return 'signed-text';
   }, [field.inserted, signature?.signatureImageAsBase64]);
+
+  // only set isSigning to false when the field is signed
+  useEffect(() => {
+    if (state === 'signed-image' || state === 'signed-text') {
+      setIsSigning(false);
+    }
+  }, [state]);
 
   const onPreSign = () => {
     // If the field is not inserted (empty) but we already have a signature from another field
@@ -205,6 +214,7 @@ export const DocumentSigningSignatureField = ({
       if (onSignField) {
         await onSignField(payload);
       } else {
+        setIsSigning(true);
         await signFieldWithToken(payload);
       }
 
@@ -217,6 +227,7 @@ export const DocumentSigningSignatureField = ({
       }
 
       console.error(err);
+      setIsSigning(false);
 
       toast({
         title: _(msg`Error`),
