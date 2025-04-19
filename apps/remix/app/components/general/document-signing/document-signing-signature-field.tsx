@@ -120,12 +120,10 @@ export const DocumentSigningSignatureField = ({
     return 'signed-text';
   }, [field.inserted, signature?.signatureImageAsBase64]);
 
-  // only set isSigning to false when the field is signed
+  // only set isSigning to false when the field signature is changed
   useEffect(() => {
-    if (state === 'signed-image' || state === 'signed-text') {
-      setIsSigning(false);
-    }
-  }, [state]);
+    setIsSigning(false);
+  }, [signature?.id]);
 
   const onPreSign = () => {
     // If the field is not inserted (empty) but we already have a signature from another field
