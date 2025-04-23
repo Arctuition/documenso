@@ -267,8 +267,8 @@ export const DocumentSigningSignatureField = ({
       setShowSignatureOptionsPopover(false);
       setShowSignatureOptionsSheet(false);
 
-      // Clear the provided signature state to prevent it from being re-applied
-      setProvidedSignature(null);
+      // We're only clearing localSignature but preserving providedSignature
+      // so it can be automatically reapplied when signing again
       setLocalSignature(null);
 
       const payload: TRemovedSignedFieldWithTokenMutationSchema = {
