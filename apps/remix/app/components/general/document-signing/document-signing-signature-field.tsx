@@ -503,7 +503,7 @@ export const DocumentSigningSignatureField = ({
             value={localSignature ?? ''}
             onChange={({ value }) => setLocalSignature(value)}
             typedSignatureEnabled={typedSignatureEnabled}
-            uploadSignatureEnabled={uploadSignatureEnabled}
+            uploadSignatureEnabled={false}
             drawSignatureEnabled={drawSignatureEnabled}
           />
 
@@ -552,7 +552,7 @@ export const DocumentSigningSignatureField = ({
                 value={localSignature ?? ''}
                 onChange={({ value }) => setLocalSignature(value)}
                 typedSignatureEnabled={typedSignatureEnabled}
-                uploadSignatureEnabled={uploadSignatureEnabled}
+                uploadSignatureEnabled={false}
                 drawSignatureEnabled={drawSignatureEnabled}
               />
 
