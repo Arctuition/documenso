@@ -284,6 +284,10 @@ export const DocumentSigningSignatureField = ({
       }
 
       await revalidate();
+      // 添加一个短暂延迟，确保DOM已更新
+      setTimeout(() => {
+        adjustPlaceholderSize();
+      }, 50);
     } catch (err) {
       console.error(err);
 
@@ -329,34 +333,33 @@ export const DocumentSigningSignatureField = ({
 
     return () => resizeObserver.disconnect();
   }, [signature?.typedSignature]);
+  const adjustPlaceholderSize = () => {
+    const container = placeholderContainerRef.current;
+    const text = placeholderRef.current;
+
+    if (!container || !text) {
+      return;
+    }
+
+    let size = 2;
+    text.style.fontSize = `${size}rem`;
+
+    while (
+      (text.scrollWidth > container.clientWidth || text.scrollHeight > container.clientHeight) &&
+      size > 0.8
+    ) {
+      size -= 0.1;
+      text.style.fontSize = `${size}rem`;
+    }
+
+    setPlaceholderFontSize(size);
+  };
 
   // Adjust placeholder text size to fit container
   useLayoutEffect(() => {
     if (!placeholderRef.current || !placeholderContainerRef.current || state !== 'empty') {
       return;
     }
-
-    const adjustPlaceholderSize = () => {
-      const container = placeholderContainerRef.current;
-      const text = placeholderRef.current;
-
-      if (!container || !text) {
-        return;
-      }
-
-      let size = 2;
-      text.style.fontSize = `${size}rem`;
-
-      while (
-        (text.scrollWidth > container.clientWidth || text.scrollHeight > container.clientHeight) &&
-        size > 0.8
-      ) {
-        size -= 0.1;
-        text.style.fontSize = `${size}rem`;
-      }
-
-      setPlaceholderFontSize(size);
-    };
 
     const resizeObserver = new ResizeObserver(adjustPlaceholderSize);
     resizeObserver.observe(placeholderContainerRef.current);
