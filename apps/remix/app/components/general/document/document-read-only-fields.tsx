@@ -4,7 +4,7 @@ import { useLingui } from '@lingui/react';
 import { Trans } from '@lingui/react/macro';
 import type { DocumentMeta } from '@prisma/client';
 import { FieldType, SigningStatus } from '@prisma/client';
-import { Clock, EyeOffIcon } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { P, match } from 'ts-pattern';
 
 import {
@@ -100,13 +100,13 @@ export const DocumentReadOnlyFields = ({
                       : field.recipient.email}{' '}
                   </p>
 
-                  <button
+                  {/* <button
                     className="absolute right-0 top-0 my-1 p-2 focus:outline-none focus-visible:ring-0"
                     onClick={() => handleHideField(field.secondaryId)}
                     title="Hide field"
                   >
                     <EyeOffIcon className="h-3 w-3" />
-                  </button>
+                  </button> */}
                 </PopoverHover>
               </div>
 
