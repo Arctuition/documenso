@@ -1426,6 +1426,7 @@ msgstr "Can prepare"
 #: apps/remix/app/components/general/teams/team-email-usage.tsx
 #: apps/remix/app/components/general/document-signing/document-signing-text-field.tsx
 #: apps/remix/app/components/general/document-signing/document-signing-signature-field.tsx
+#: apps/remix/app/components/general/document-signing/document-signing-signature-field.tsx
 #: apps/remix/app/components/general/document-signing/document-signing-reject-dialog.tsx
 #: apps/remix/app/components/general/document-signing/document-signing-number-field.tsx
 #: apps/remix/app/components/general/document-signing/document-signing-name-field.tsx
@@ -1576,6 +1577,7 @@ msgstr "Click here to upload"
 msgid "Click to copy signing link for sending to recipient"
 msgstr "Click to copy signing link for sending to recipient"
 
+#: apps/remix/app/components/general/document-signing/document-signing-next-field.tsx
 #: apps/remix/app/components/general/document-signing/document-signing-form.tsx
 #: apps/remix/app/components/general/direct-template/direct-template-signing-form.tsx
 #: apps/remix/app/components/embed/embed-document-signing-page.tsx
@@ -1597,7 +1599,6 @@ msgstr "Click to insert field"
 msgid "Close"
 msgstr "Close"
 
-#: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
 #: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
 #: apps/remix/app/components/forms/signup.tsx
 #: apps/remix/app/components/embed/embed-document-signing-page.tsx
@@ -2890,6 +2891,10 @@ msgstr "File cannot be larger than {APP_DOCUMENT_UPLOAD_SIZE_LIMIT}MB"
 msgid "File size exceeds the limit of {APP_DOCUMENT_UPLOAD_SIZE_LIMIT} MB"
 msgstr "File size exceeds the limit of {APP_DOCUMENT_UPLOAD_SIZE_LIMIT} MB"
 
+#: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
+msgid "Finish"
+msgstr "Finish"
+
 #: packages/ui/primitives/document-flow/field-items-advanced-settings/text-field.tsx
 #: packages/ui/primitives/document-flow/field-items-advanced-settings/number-field.tsx
 #: packages/ui/primitives/document-flow/field-items-advanced-settings/name-field.tsx
@@ -2979,16 +2984,8 @@ msgid "Green"
 msgstr "Green"
 
 #: apps/remix/app/components/general/document-signing/document-signing-page-view.tsx
-msgid "has invited you to approve this document"
-msgstr "has invited you to approve this document"
-
-#: apps/remix/app/components/general/document-signing/document-signing-page-view.tsx
 msgid "has invited you to assist this document"
 msgstr "has invited you to assist this document"
-
-#: apps/remix/app/components/general/document-signing/document-signing-page-view.tsx
-msgid "has invited you to sign this document"
-msgstr "has invited you to sign this document"
 
 #: apps/remix/app/components/general/document-signing/document-signing-page-view.tsx
 msgid "has invited you to view this document"
@@ -3589,8 +3586,8 @@ msgid "Next"
 msgstr "Next"
 
 #: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
-msgid "Next field"
-msgstr "Next field"
+msgid "Next field({unsignedFieldsCount})"
+msgstr "Next field({unsignedFieldsCount})"
 
 #: apps/remix/app/components/tables/documents-table-empty-state.tsx
 msgid "No active drafts"
@@ -3698,18 +3695,8 @@ msgstr "Number format"
 
 #. placeholder {0}: document.team?.name
 #: apps/remix/app/components/general/document-signing/document-signing-page-view.tsx
-msgid "on behalf of \"{0}\" has invited you to approve this document"
-msgstr "on behalf of \"{0}\" has invited you to approve this document"
-
-#. placeholder {0}: document.team?.name
-#: apps/remix/app/components/general/document-signing/document-signing-page-view.tsx
 msgid "on behalf of \"{0}\" has invited you to assist this document"
 msgstr "on behalf of \"{0}\" has invited you to assist this document"
-
-#. placeholder {0}: document.team?.name
-#: apps/remix/app/components/general/document-signing/document-signing-page-view.tsx
-msgid "on behalf of \"{0}\" has invited you to sign this document"
-msgstr "on behalf of \"{0}\" has invited you to sign this document"
 
 #. placeholder {0}: document.team?.name
 #: apps/remix/app/components/general/document-signing/document-signing-page-view.tsx
@@ -3798,11 +3785,6 @@ msgstr "Owner"
 #: packages/ui/primitives/data-table-pagination.tsx
 msgid "Page {0} of {1}"
 msgstr "Page {0} of {1}"
-
-#. placeholder {0}: i + 1
-#: packages/ui/primitives/pdf-viewer.tsx
-msgid "Page {0} of {numPages}"
-msgstr "Page {0} of {numPages}"
 
 #: apps/remix/app/components/tables/team-settings-billing-invoices-table.tsx
 msgid "Paid"
@@ -4720,6 +4702,7 @@ msgstr "Show templates in your team public profile for your audience to sign and
 #: apps/remix/app/components/general/user-profile-timur.tsx
 #: apps/remix/app/components/general/user-profile-skeleton.tsx
 #: apps/remix/app/components/general/document-signing/document-signing-signature-field.tsx
+#: apps/remix/app/components/general/document-signing/document-signing-signature-field.tsx
 #: apps/remix/app/components/general/document-signing/document-signing-name-field.tsx
 #: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
 #: apps/remix/app/components/general/document-signing/document-signing-auto-sign.tsx
@@ -4728,6 +4711,11 @@ msgstr "Show templates in your team public profile for your audience to sign and
 #: packages/lib/constants/recipient-roles.ts
 msgid "Sign"
 msgstr "Sign"
+
+#. placeholder {0}: recipient.name
+#: apps/remix/app/components/general/document-signing/document-signing-signature-field.tsx
+msgid "Sign as {0}"
+msgstr "Sign as {0}"
 
 #. placeholder {0}: recipient.name
 #. placeholder {1}: recipient.email
