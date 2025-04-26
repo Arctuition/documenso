@@ -8,7 +8,7 @@
     "build:server": "cross-env NODE_ENV=production rollup -c rollup.config.mjs",
     "dev": "npm run with:env -- react-router dev",
     "dev:billing": "bash .bin/stripe-dev.sh",
-    "start": "npm run with:env -- cross-env NODE_ENV=production node build/server/main.js",
+    "start": "NODE_OPTIONS='--import ./instrumentation.server.mjs' npm run with:env -- cross-env NODE_ENV=production node build/server/main.js",
     "clean": "rimraf .react-router && rimraf node_modules",
     "typecheck": "react-router typegen && tsc",
     "with:env": "dotenv -e ../../.env -e ../../.env.local --"
@@ -35,6 +35,8 @@
     "@oslojs/encoding": "^1.1.0",
     "@react-router/node": "^7.1.5",
     "@react-router/serve": "^7.1.5",
+    "@sentry/remix": "^9.14.0",
+    "@sentry/vite-plugin": "^3.3.1",
     "@simplewebauthn/browser": "^9.0.1",
     "@simplewebauthn/server": "^9.0.3",
     "autoprefixer": "^10.4.13",
