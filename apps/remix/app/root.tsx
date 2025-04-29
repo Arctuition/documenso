@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 
-import { withSentry } from '@sentry/remix';
 import Plausible from 'plausible-tracker';
 import {
   Links,
@@ -172,11 +171,9 @@ export function LayoutContent({ children }: { children: React.ReactNode }) {
   );
 }
 
-function App() {
+export default function App() {
   return <Outlet />;
 }
-
-export default withSentry(App);
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   const errorCode = isRouteErrorResponse(error) ? error.status : 500;

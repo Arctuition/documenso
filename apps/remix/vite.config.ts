@@ -1,6 +1,5 @@
 import { lingui } from '@lingui/vite-plugin';
 import { reactRouter } from '@react-router/dev/vite';
-import { sentryVitePlugin } from '@sentry/vite-plugin';
 import autoprefixer from 'autoprefixer';
 import serverAdapter from 'hono-react-router-adapter/vite';
 import tailwindcss from 'tailwindcss';
@@ -31,10 +30,6 @@ export default defineConfig({
     tsconfigPaths(),
     serverAdapter({
       entry: 'server/router.ts',
-    }),
-    sentryVitePlugin({
-      org: 'arcsite',
-      project: 'arcsite-esign',
     }),
   ],
   ssr: {
