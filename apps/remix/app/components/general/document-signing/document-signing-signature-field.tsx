@@ -4,6 +4,7 @@ import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react';
 import { Trans } from '@lingui/react/macro';
 import { Loader } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { useRevalidator } from 'react-router';
 
 import { useIsMobile } from '@documenso/lib/client-only/hooks/use-is-mobile';
@@ -59,6 +60,7 @@ export const DocumentSigningSignatureField = ({
   const placeholderRef = useRef<HTMLParagraphElement>(null);
   const placeholderContainerRef = useRef<HTMLDivElement>(null);
   const optionsRef = useRef<HTMLDivElement>(null);
+  const fieldRef = useRef<HTMLDivElement>(null);
   const [fontSize, setFontSize] = useState(2);
   const [placeholderFontSize, setPlaceholderFontSize] = useState(2);
 
@@ -369,6 +371,18 @@ export const DocumentSigningSignatureField = ({
     return () => resizeObserver.disconnect();
   }, [state]);
 
+  // Position the popup relative to the field element
+  useLayoutEffect(() => {
+    if (!isMobile && showSignatureOptionsPopover && optionsRef.current && fieldRef.current) {
+      const fieldRect = fieldRef.current.getBoundingClientRect();
+
+      // Position the popup above the field
+      optionsRef.current.style.left = `${fieldRect.left + fieldRect.width / 2}px`;
+      optionsRef.current.style.top = `${fieldRect.top - 10}px`; // 10px above the field
+      optionsRef.current.style.transform = 'translate(-50%, -100%)';
+    }
+  }, [isMobile, showSignatureOptionsPopover]);
+
   return (
     <DocumentSigningFieldContainer
       field={field}
@@ -419,36 +433,42 @@ export const DocumentSigningSignatureField = ({
       )}
 
       {/* Desktop: Signature Options Popover - shows above the signature field */}
-      {!isMobile && showSignatureOptionsPopover && (
-        <div
-          ref={optionsRef}
-          className="absolute z-50 min-w-[120px] rounded-md border border-dashed border-blue-200 bg-white p-0 shadow-md"
-          style={{
-            left: '50%',
-            transform: 'translate(-50%, -80%)',
-          }}
-        >
-          <div className="flex flex-col">
-            <button
-              type="button"
-              className="px-6 py-3 text-center transition-colors hover:bg-gray-50"
-              onClick={onChangeSignature}
+      <div ref={fieldRef} className="relative">
+        {!isMobile &&
+          showSignatureOptionsPopover &&
+          typeof document !== 'undefined' &&
+          createPortal(
+            <div
+              ref={optionsRef}
+              className="fixed min-w-[120px] rounded-md border border-dashed border-blue-200 bg-white p-0 shadow-md"
+              style={{
+                // Position will be calculated dynamically
+                zIndex: 9999,
+              }}
             >
-              <span className="text-foreground">Change</span>
-            </button>
+              <div className="flex flex-col">
+                <button
+                  type="button"
+                  className="px-6 py-3 text-center transition-colors hover:bg-gray-50"
+                  onClick={onChangeSignature}
+                >
+                  <span className="text-foreground">Change</span>
+                </button>
 
-            <div className="border-t border-gray-200"></div>
+                <div className="border-t border-gray-200"></div>
 
-            <button
-              type="button"
-              className="px-6 py-3 text-center transition-colors hover:bg-gray-50"
-              onClick={async () => await onRemove()}
-            >
-              <span className="text-destructive">Clear</span>
-            </button>
-          </div>
-        </div>
-      )}
+                <button
+                  type="button"
+                  className="px-6 py-3 text-center transition-colors hover:bg-gray-50"
+                  onClick={async () => await onRemove()}
+                >
+                  <span className="text-destructive">Clear</span>
+                </button>
+              </div>
+            </div>,
+            document.body,
+          )}
+      </div>
 
       {/* Mobile: Signature Options Sheet - slides up from bottom */}
       <Sheet
