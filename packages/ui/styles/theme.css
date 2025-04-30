@@ -201,11 +201,6 @@
   :root {
     color-scheme: only light;
   }
-
-  body,
-  html {
-    background-color: white !important;
-  }
 }
 
 /*
