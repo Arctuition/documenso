@@ -24,7 +24,7 @@ export const DocumentSigningDisclosure = ({
           Read the full{' '}
           <Link
             className="text-documenso-700 underline"
-            to="/articles/signature-disclosure"
+            to="https://www.arcsite.com/legal/terms"
             target="_blank"
           >
             signature disclosure
