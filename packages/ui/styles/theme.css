@@ -196,6 +196,16 @@
       'rlig' 1,
       'calt' 1;
   }
+
+  /** force light mode **/
+  :root {
+    color-scheme: only light;
+  }
+
+  body,
+  html {
+    background-color: white !important;
+  }
 }
 
 /*
