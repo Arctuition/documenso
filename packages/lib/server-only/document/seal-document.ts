@@ -146,7 +146,9 @@ export const sealDocument = async ({
   }
 
   for (const field of fields) {
-    await insertFieldInPDF(doc, field);
+    await insertFieldInPDF(doc, field, {
+      timezone: document.documentMeta?.timezone,
+    });
   }
 
   // Re-flatten post-insertion to handle fields that create arcoFields

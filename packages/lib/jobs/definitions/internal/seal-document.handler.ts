@@ -167,7 +167,9 @@ export const run = async ({
 
     for (const field of fields) {
       if (field.inserted) {
-        await insertFieldInPDF(pdfDoc, field);
+        await insertFieldInPDF(pdfDoc, field, {
+          timezone: document.documentMeta?.timezone,
+        });
       }
     }
 

@@ -11,6 +11,7 @@ import {
   MIN_HANDWRITING_FONT_SIZE,
   MIN_STANDARD_FONT_SIZE,
 } from '@documenso/lib/constants/pdf';
+import { DEFAULT_DOCUMENT_TIME_ZONE } from '@documenso/lib/constants/time-zones';
 import { fromCheckboxValue } from '@documenso/lib/universal/field-checkbox';
 import { isSignatureFieldType } from '@documenso/prisma/guards/is-signature-field';
 import type { FieldWithSignature } from '@documenso/prisma/types/field-with-signature';
@@ -27,7 +28,38 @@ import {
   ZTextFieldMeta,
 } from '../../types/field-meta';
 
-export const insertFieldInPDF = async (pdf: PDFDocument, field: FieldWithSignature) => {
+export type InsertFieldInPdfOptions = {
+  timezone?: string | null;
+};
+
+const isUtcOrUnsetTimezone = (timezone: string | null | undefined) =>
+  !timezone || timezone.toLowerCase() === DEFAULT_DOCUMENT_TIME_ZONE.toLowerCase();
+
+const getDateFieldTextForPdf = (field: FieldWithSignature, options?: InsertFieldInPdfOptions) => {
+  if (field.type !== FieldType.DATE) {
+    return field.customText;
+  }
+
+  const customText = field.customText;
+
+  if (!customText) {
+    return customText;
+  }
+
+  if (/\bUTC$/.test(customText)) {
+    return customText;
+  }
+
+  const timezone = options?.timezone ?? null;
+
+  return isUtcOrUnsetTimezone(timezone) ? `${customText} UTC` : customText;
+};
+
+export const insertFieldInPDF = async (
+  pdf: PDFDocument,
+  field: FieldWithSignature,
+  options?: InsertFieldInPdfOptions,
+) => {
   const [fontCaveat, fontNoto] = await Promise.all([
     fetch(`${NEXT_PUBLIC_WEBAPP_URL()}/fonts/caveat.ttf`).then(async (res) => res.arrayBuffer()),
     fetch(`${NEXT_PUBLIC_WEBAPP_URL()}/fonts/noto-sans.ttf`).then(async (res) => res.arrayBuffer()),
@@ -309,7 +341,8 @@ export const insertFieldInPDF = async (pdf: PDFDocument, field: FieldWithSignatu
 
       const customFontSize = meta?.success && meta.data.fontSize ? meta.data.fontSize : null;
       const textAlign = meta?.success && meta.data.textAlign ? meta.data.textAlign : 'center';
-      const longestLineInTextForWidth = field.customText
+      const fieldText = getDateFieldTextForPdf(field, options);
+      const longestLineInTextForWidth = fieldText
         .split('\n')
         .sort((a, b) => b.length - a.length)[0];
 
@@ -353,7 +386,7 @@ export const insertFieldInPDF = async (pdf: PDFDocument, field: FieldWithSignatu
         textY = adjustedPosition.yPos;
       }
 
-      page.drawText(field.customText, {
+      page.drawText(fieldText, {
         x: textX,
         y: textY,
         size: fontSize,

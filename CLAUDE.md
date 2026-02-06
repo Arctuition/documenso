@@ -1,6 +1,7 @@
 # Documenso Development Guide
 
 ## Commands
+
 - Build: `npm run build`
 - Dev: `npm run dev` (remix app) or `npm run d` (includes translation compile)
 - Lint: `npm run lint` (check) or `npm run lint:fix` (auto-fix)
@@ -9,6 +10,7 @@
 - Setup: `npm run dx` (installs deps, starts docker, runs migrations & seeds)
 
 ## Code Style
+
 - TypeScript for all code; favor interfaces over types; avoid enums, use maps
 - Use functional/declarative patterns; avoid classes
 - Named exports for components; lowercase with dashes for directories
@@ -19,3 +21,4 @@
 - 100 character line length; 2-space indentation; trailing commas
 - Conventional commit format (feat, fix, chore, etc.)
 - Prefer React Server Components; minimize 'use client', 'useState', 'useEffect'
+
