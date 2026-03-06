@@ -243,6 +243,11 @@ export const findDocuments = async ({
             email: true,
           },
         },
+        documentMeta: {
+          select: {
+            language: true,
+          },
+        },
         recipients: true,
         team: {
           select: {

@@ -4,7 +4,7 @@ import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react';
 import { Trans } from '@lingui/react/macro';
 import { DocumentStatus } from '@prisma/client';
-import type { Document, Recipient, Team, User } from '@prisma/client';
+import type { Document, DocumentMeta, Recipient, Team, User } from '@prisma/client';
 import {
   Copy,
   Download,
@@ -41,6 +41,7 @@ import { useOptionalCurrentTeam } from '~/providers/team';
 
 export type DocumentPageViewDropdownProps = {
   document: Document & {
+    documentMeta: Pick<DocumentMeta, 'language'> | null;
     user: Pick<User, 'id' | 'name' | 'email'>;
     recipients: Recipient[];
     team: Pick<Team, 'id' | 'url'> | null;
@@ -151,6 +152,7 @@ export const DocumentPageViewDropdown = ({ document }: DocumentPageViewDropdownP
 
         {canManageDocument && (
           <DocumentRecipientLinkCopyDialog
+            language={document.documentMeta?.language}
             recipients={document.recipients}
             trigger={
               <DropdownMenuItem

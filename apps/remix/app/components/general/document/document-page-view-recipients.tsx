@@ -2,7 +2,7 @@ import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react';
 import { Trans } from '@lingui/react/macro';
 import { DocumentStatus, RecipientRole, SigningStatus } from '@prisma/client';
-import type { Document, Recipient } from '@prisma/client';
+import type { Document, DocumentMeta, Recipient } from '@prisma/client';
 import {
   AlertTriangle,
   CheckIcon,
@@ -28,6 +28,7 @@ import { useToast } from '@documenso/ui/primitives/use-toast';
 
 export type DocumentPageViewRecipientsProps = {
   document: Document & {
+    documentMeta: Pick<DocumentMeta, 'language'> | null;
     recipients: Recipient[];
   };
   documentRootPath: string;
@@ -162,7 +163,7 @@ export const DocumentPageViewRecipients = ({
                 recipient.signingStatus === SigningStatus.NOT_SIGNED &&
                 recipient.role !== RecipientRole.CC && (
                   <CopyTextButton
-                    value={formatSigningLink(recipient.token)}
+                    value={formatSigningLink(recipient.token, document.documentMeta?.language)}
                     onCopySuccess={() => {
                       toast({
                         title: _(msg`Copied to clipboard`),

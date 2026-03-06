@@ -65,6 +65,7 @@ export const DocumentsTable = ({ data, isLoading, isLoadingError }: DocumentsTab
           <StackAvatarsWithTooltip
             recipients={row.original.recipients}
             documentStatus={row.original.status}
+            language={row.original.documentMeta?.language}
           />
         ),
       },

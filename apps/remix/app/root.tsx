@@ -17,10 +17,8 @@ import { PreventFlashOnWrongTheme, ThemeProvider, useTheme } from 'remix-themes'
 
 import { getOptionalSession } from '@documenso/auth/server/lib/utils/get-session';
 import { SessionProvider } from '@documenso/lib/client-only/providers/session';
-import { APP_I18N_OPTIONS, type SupportedLanguageCodes } from '@documenso/lib/constants/i18n';
 import { type TGetTeamsResponse, getTeams } from '@documenso/lib/server-only/team/get-teams';
 import { createPublicEnv, env } from '@documenso/lib/utils/env';
-import { extractLocaleData } from '@documenso/lib/utils/i18n';
 import { TrpcProvider } from '@documenso/trpc/react';
 import { Toaster } from '@documenso/ui/primitives/toaster';
 import { TooltipProvider } from '@documenso/ui/primitives/tooltip';
@@ -30,6 +28,7 @@ import stylesheet from './app.css?url';
 import { GenericErrorLayout } from './components/general/generic-error-layout';
 import { langCookie } from './storage/lang-cookie.server';
 // import { themeSessionResolver } from './storage/theme-session.server';
+import { getRequestLanguage } from './utils/get-request-language.server';
 import { appMetaTags } from './utils/meta';
 
 const { trackPageview } = Plausible({
@@ -77,11 +76,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   // const { getTheme } = await themeSessionResolver(request);
 
-  let lang: SupportedLanguageCodes = await langCookie.parse(request.headers.get('cookie') ?? '');
-
-  if (!APP_I18N_OPTIONS.supportedLangs.includes(lang)) {
-    lang = extractLocaleData({ headers: request.headers }).lang;
-  }
+  const lang = await getRequestLanguage(request);
   // const theme = getTheme();
 
   return data(
