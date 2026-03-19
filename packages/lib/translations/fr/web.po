@@ -3433,7 +3433,7 @@ msgstr "Gestionnaire"
 
 #: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
 msgid "Mark as viewed"
-msgstr ""
+msgstr "Marquer comme vu"
 
 #: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
 #: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
@@ -3596,6 +3596,14 @@ msgstr "Suivant"
 #: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
 msgid "Next field"
 msgstr "Champ suivant"
+
+#: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
+msgid "Next field({0})"
+msgstr "Champ suivant ({0})"
+
+#: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
+msgid "Finish"
+msgstr "Terminer"
 
 #: apps/remix/app/components/tables/documents-table-empty-state.tsx
 msgid "No active drafts"
@@ -4053,7 +4061,7 @@ msgstr "Veuillez fournir un token de votre authentificateur, ou un code de secou
 
 #: apps/remix/app/components/general/document-signing/document-signing-form.tsx
 msgid "Please review the document before approving."
-msgstr ""
+msgstr "Veuillez examiner le document avant d'approuver."
 
 #: apps/remix/app/components/general/document-signing/document-signing-form.tsx
 msgid "Please review the document before signing."
