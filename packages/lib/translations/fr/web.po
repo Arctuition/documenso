@@ -2541,7 +2541,7 @@ msgstr "Faites glisser et déposez votre PDF ici."
 
 #: packages/lib/constants/document.ts
 msgid "Draw"
-msgstr ""
+msgstr "Dessiner"
 
 #: packages/ui/primitives/template-flow/add-template-fields.tsx
 #: packages/ui/primitives/document-flow/add-fields.tsx
@@ -5974,7 +5974,7 @@ msgstr "Ré-authentification à deux facteurs"
 #: apps/remix/app/components/tables/admin-document-recipient-item-table.tsx
 #: packages/lib/constants/document.ts
 msgid "Type"
-msgstr "Type"
+msgstr "Saisir"
 
 #: apps/remix/app/components/general/app-command-menu.tsx
 msgid "Type a command or search..."
@@ -6168,7 +6168,7 @@ msgstr "Améliorer"
 
 #: packages/lib/constants/document.ts
 msgid "Upload"
-msgstr ""
+msgstr "Télécharger"
 
 #: apps/remix/app/components/dialogs/template-bulk-send-dialog.tsx
 msgid "Upload a CSV file to create multiple documents from this template. Each row represents one document with its recipient details."
