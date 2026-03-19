@@ -3598,10 +3598,6 @@ msgid "Next field"
 msgstr "Champ suivant"
 
 #: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
-msgid "Next field({0})"
-msgstr "Champ suivant ({0})"
-
-#: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
 msgid "Finish"
 msgstr "Terminer"
 
@@ -7270,3 +7266,11 @@ msgstr "Votre token a été créé avec succès ! Assurez-vous de le copier car 
 #: apps/remix/app/routes/_authenticated+/settings+/tokens.tsx
 msgid "Your tokens will be shown here once you create them."
 msgstr "Vos tokens seront affichés ici une fois que vous les aurez créés."
+
+#: apps/remix/app/components/general/document-signing/document-signing-page-view.tsx
+msgid "You are invited to sign this document"
+msgstr "Vous êtes invité(e) à signer ce document"
+
+#: apps/remix/app/components/general/document-signing/document-signing-page-view.tsx
+msgid "You are invited to approve this document"
+msgstr "Vous êtes invité(e) à approuver ce document"
