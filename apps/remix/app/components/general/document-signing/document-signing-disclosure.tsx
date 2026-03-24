@@ -1,5 +1,6 @@
 import type { HTMLAttributes } from 'react';
 
+import { useLingui } from '@lingui/react';
 import { Trans } from '@lingui/react/macro';
 import { Link } from 'react-router';
 
@@ -11,6 +12,14 @@ export const DocumentSigningDisclosure = ({
   className,
   ...props
 }: DocumentSigningDisclosureProps) => {
+  const { i18n } = useLingui();
+
+  const DISCLOSURE_URLS: Record<string, string> = {
+    fr: 'https://www.arcsite.com/modalites-et-conditions',
+  };
+
+  const disclosureUrl = DISCLOSURE_URLS[i18n.locale] ?? 'https://www.arcsite.com/legal/terms';
+
   return (
     <p className={cn('text-muted-foreground text-xs', className)} {...props}>
       <Trans>
@@ -22,11 +31,7 @@ export const DocumentSigningDisclosure = ({
       <span className="mt-2 block">
         <Trans>
           Read the full{' '}
-          <Link
-            className="text-documenso-700 underline"
-            to="https://www.arcsite.com/legal/terms"
-            target="_blank"
-          >
+          <Link className="text-documenso-700 underline" to={disclosureUrl} target="_blank">
             signature disclosure
           </Link>
           .
