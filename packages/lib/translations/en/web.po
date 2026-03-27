@@ -3589,8 +3589,8 @@ msgid "Next"
 msgstr "Next"
 
 #: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
-msgid "Next field"
-msgstr "Next field"
+msgid "Next field ({0})"
+msgstr "Next field ({0})"
 
 #: apps/remix/app/components/tables/documents-table-empty-state.tsx
 msgid "No active drafts"

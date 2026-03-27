@@ -154,7 +154,7 @@ export const SignaturePad = ({
         {typedSignatureEnabled && (
           <TabsTrigger value="text">
             <KeyboardIcon className="mr-2 size-4" />
-            <Trans>Type</Trans>
+            <Trans>Type Signature</Trans>
           </TabsTrigger>
         )}
 
