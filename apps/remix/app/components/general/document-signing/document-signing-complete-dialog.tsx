@@ -129,7 +129,7 @@ export const DocumentSigningCompleteDialog = ({
           {match({ isComplete, role })
             .with({ isComplete: false }, () => (
               <>
-                <Trans>Next field</Trans>({unsignedFieldsCount})
+                <Trans>Next field ({unsignedFieldsCount})</Trans>
               </>
             ))
             .with({ isComplete: true, role: RecipientRole.APPROVER }, () => <Trans>Approve</Trans>)

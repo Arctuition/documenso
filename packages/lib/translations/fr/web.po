@@ -3594,8 +3594,8 @@ msgid "Next"
 msgstr "Suivant"
 
 #: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
-msgid "Next field"
-msgstr "Champ suivant"
+msgid "Next field ({0})"
+msgstr "Champ suivant ({0})"
 
 #: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
 msgid "Finish"
@@ -5974,7 +5974,7 @@ msgstr "Ré-authentification à deux facteurs"
 #: apps/remix/app/components/tables/admin-document-recipient-item-table.tsx
 #: packages/lib/constants/document.ts
 msgid "Type"
-msgstr "Saisir"
+msgstr "Type"
 
 #: apps/remix/app/components/general/app-command-menu.tsx
 msgid "Type a command or search..."
