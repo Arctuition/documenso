@@ -1,3 +1,13 @@
+/**
+ * Re-seal a document and trigger webhooks.
+ * Use this when a document is stuck in PENDING after all recipients have signed.
+ *
+ * Usage:
+ *   npm run with:env -- npx tsx scripts/reseal-document.cjs <documentId>
+ *
+ * Example:
+ *   npm run with:env -- npx tsx scripts/reseal-document.cjs 359
+ */
 'use strict';
 
 const Module = require('module');
