@@ -5968,8 +5968,12 @@ msgstr "Ponowna autoryzacja za pomocą dwuetapowej weryfikacji"
 
 #: apps/remix/app/components/tables/templates-table.tsx
 #: apps/remix/app/components/tables/admin-document-recipient-item-table.tsx
-#: packages/lib/constants/document.ts
 msgid "Type"
+msgstr "Typ"
+
+#: packages/lib/constants/document.ts
+#: packages/ui/primitives/signature-pad/signature-pad.tsx
+msgid "Type Signature"
 msgstr "Typ"
 
 #: apps/remix/app/components/general/app-command-menu.tsx
