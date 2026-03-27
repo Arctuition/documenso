@@ -8,15 +8,15 @@ import { cn } from '@documenso/ui/lib/utils';
 
 export type DocumentSigningDisclosureProps = HTMLAttributes<HTMLParagraphElement>;
 
+const DISCLOSURE_URLS: Record<string, string> = {
+  fr: 'https://www.arcsite.com/modalites-et-conditions',
+};
+
 export const DocumentSigningDisclosure = ({
   className,
   ...props
 }: DocumentSigningDisclosureProps) => {
   const { i18n } = useLingui();
-
-  const DISCLOSURE_URLS: Record<string, string> = {
-    fr: 'https://www.arcsite.com/modalites-et-conditions',
-  };
 
   const disclosureUrl = DISCLOSURE_URLS[i18n.locale] ?? 'https://www.arcsite.com/legal/terms';
 
