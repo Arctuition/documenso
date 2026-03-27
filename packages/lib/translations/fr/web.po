@@ -3594,8 +3594,8 @@ msgid "Next"
 msgstr "Suivant"
 
 #: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
-msgid "Next field ({0})"
-msgstr "Champ suivant ({0})"
+msgid "Next field ({unsignedFieldsCount})"
+msgstr "Champ suivant ({unsignedFieldsCount})"
 
 #: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
 msgid "Finish"
