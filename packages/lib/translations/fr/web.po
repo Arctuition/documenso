@@ -1561,6 +1561,10 @@ msgstr "Effacer les filtres"
 msgid "Clear Signature"
 msgstr "Effacer la signature"
 
+#: packages/ui/primitives/signature-pad/signature-pad-type.tsx
+msgid "Type your signature"
+msgstr "Saisissez votre signature"
+
 #: apps/remix/app/components/tables/settings-public-profile-templates-table.tsx
 msgid "Click here to get started"
 msgstr "Cliquez ici pour commencer"
