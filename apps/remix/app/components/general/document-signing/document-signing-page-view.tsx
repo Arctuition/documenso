@@ -150,8 +150,12 @@ export const DocumentSigningPageView = ({
                       <Trans>has invited you to view this document</Trans>
                     ),
                   )
-                  .with(RecipientRole.SIGNER, () => 'You are invited to sign this document')
-                  .with(RecipientRole.APPROVER, () => 'You are invited to sign this document')
+                  .with(RecipientRole.SIGNER, () => (
+                    <Trans>You are invited to sign this document</Trans>
+                  ))
+                  .with(RecipientRole.APPROVER, () => (
+                    <Trans>You are invited to approve this document</Trans>
+                  ))
                   .with(RecipientRole.ASSISTANT, () =>
                     document.teamId && !shouldUseTeamDetails ? (
                       <Trans>

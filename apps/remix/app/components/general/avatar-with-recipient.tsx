@@ -5,9 +5,9 @@ import { DocumentStatus } from '@prisma/client';
 
 import { useCopyToClipboard } from '@documenso/lib/client-only/hooks/use-copy-to-clipboard';
 import { getRecipientType } from '@documenso/lib/client-only/recipient-type';
-import { NEXT_PUBLIC_WEBAPP_URL } from '@documenso/lib/constants/app';
 import { RECIPIENT_ROLES_DESCRIPTION } from '@documenso/lib/constants/recipient-roles';
 import { recipientAbbreviation } from '@documenso/lib/utils/recipient-formatter';
+import { formatSigningLink } from '@documenso/lib/utils/recipients';
 import { cn } from '@documenso/ui/lib/utils';
 import { useToast } from '@documenso/ui/primitives/use-toast';
 
@@ -16,9 +16,14 @@ import { StackAvatar } from './stack-avatar';
 export type AvatarWithRecipientProps = {
   recipient: Recipient;
   documentStatus: DocumentStatus;
+  language?: string | null;
 };
 
-export function AvatarWithRecipient({ recipient, documentStatus }: AvatarWithRecipientProps) {
+export function AvatarWithRecipient({
+  recipient,
+  documentStatus,
+  language,
+}: AvatarWithRecipientProps) {
   const [, copy] = useCopyToClipboard();
 
   const { _ } = useLingui();
@@ -31,7 +36,7 @@ export function AvatarWithRecipient({ recipient, documentStatus }: AvatarWithRec
       return;
     }
 
-    void copy(`${NEXT_PUBLIC_WEBAPP_URL()}/sign/${signingToken}`).then(() => {
+    void copy(formatSigningLink(signingToken, language)).then(() => {
       toast({
         title: _(msg`Copied to clipboard`),
         description: _(msg`The signing link has been copied to your clipboard.`),

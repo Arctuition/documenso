@@ -9,7 +9,6 @@ import { useSearchParams } from 'react-router';
 
 import { useCopyToClipboard } from '@documenso/lib/client-only/hooks/use-copy-to-clipboard';
 import { useUpdateSearchParams } from '@documenso/lib/client-only/hooks/use-update-search-params';
-import { NEXT_PUBLIC_WEBAPP_URL } from '@documenso/lib/constants/app';
 import { RECIPIENT_ROLES_DESCRIPTION } from '@documenso/lib/constants/recipient-roles';
 import { formatSigningLink } from '@documenso/lib/utils/recipients';
 import { CopyTextButton } from '@documenso/ui/components/common/copy-text-button';
@@ -30,11 +29,13 @@ import { useToast } from '@documenso/ui/primitives/use-toast';
 export type DocumentRecipientLinkCopyDialogProps = {
   trigger?: React.ReactNode;
   recipients: Recipient[];
+  language?: string | null;
 };
 
 export const DocumentRecipientLinkCopyDialog = ({
   trigger,
   recipients,
+  language,
 }: DocumentRecipientLinkCopyDialogProps) => {
   const { _ } = useLingui();
   const { toast } = useToast();
@@ -51,7 +52,7 @@ export const DocumentRecipientLinkCopyDialog = ({
   const onBulkCopy = async () => {
     const generatedString = recipients
       .filter((recipient) => recipient.role !== RecipientRole.CC)
-      .map((recipient) => `${recipient.email}\n${NEXT_PUBLIC_WEBAPP_URL()}/sign/${recipient.token}`)
+      .map((recipient) => `${recipient.email}\n${formatSigningLink(recipient.token, language)}`)
       .join('\n\n');
 
     await copy(generatedString).then(() => {
@@ -109,7 +110,7 @@ export const DocumentRecipientLinkCopyDialog = ({
 
               {recipient.role !== RecipientRole.CC && (
                 <CopyTextButton
-                  value={formatSigningLink(recipient.token)}
+                  value={formatSigningLink(recipient.token, language)}
                   onCopySuccess={() => {
                     toast({
                       title: _(msg`Copied to clipboard`),

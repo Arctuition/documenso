@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react';
 import { Trans } from '@lingui/react/macro';
-import type { Document, Recipient, Team, User } from '@prisma/client';
+import type { Document, DocumentMeta, Recipient, Team, User } from '@prisma/client';
 import { DocumentStatus, RecipientRole } from '@prisma/client';
 import {
   CheckCircle,
@@ -44,6 +44,7 @@ import { useOptionalCurrentTeam } from '~/providers/team';
 
 export type DocumentsTableActionDropdownProps = {
   row: Document & {
+    documentMeta: Pick<DocumentMeta, 'language'> | null;
     user: Pick<User, 'id' | 'name' | 'email'>;
     recipients: Recipient[];
     team: Pick<Team, 'id' | 'url'> | null;
@@ -182,6 +183,7 @@ export const DocumentsTableActionDropdown = ({ row }: DocumentsTableActionDropdo
 
         {canManageDocument && (
           <DocumentRecipientLinkCopyDialog
+            language={row.documentMeta?.language}
             recipients={row.recipients}
             trigger={
               <DropdownMenuItem disabled={!isPending} asChild onSelect={(e) => e.preventDefault()}>

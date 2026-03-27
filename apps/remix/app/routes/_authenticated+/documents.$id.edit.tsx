@@ -117,6 +117,7 @@ export default function DocumentEditPage() {
             <StackAvatarsWithTooltip
               recipients={recipients}
               documentStatus={document.status}
+              language={document.documentMeta?.language}
               position="bottom"
             >
               <span>

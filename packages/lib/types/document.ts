@@ -111,6 +111,9 @@ export const ZDocumentManySchema = DocumentSchema.pick({
     name: true,
     email: true,
   }),
+  documentMeta: DocumentMetaSchema.pick({
+    language: true,
+  }).nullable(),
   recipients: ZRecipientLiteSchema.array(),
   team: TeamSchema.pick({
     id: true,

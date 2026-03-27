@@ -8,10 +8,9 @@ import { renderToPipeableStream } from 'react-dom/server';
 import type { AppLoadContext, EntryContext } from 'react-router';
 import { ServerRouter } from 'react-router';
 
-import { APP_I18N_OPTIONS } from '@documenso/lib/constants/i18n';
-import { dynamicActivate, extractLocaleData } from '@documenso/lib/utils/i18n';
+import { dynamicActivate } from '@documenso/lib/utils/i18n';
 
-import { langCookie } from './storage/lang-cookie.server';
+import { getRequestLanguage } from './utils/get-request-language.server';
 
 export const streamTimeout = 5_000;
 
@@ -22,11 +21,7 @@ export default async function handleRequest(
   routerContext: EntryContext,
   _loadContext: AppLoadContext,
 ) {
-  let language = await langCookie.parse(request.headers.get('cookie') ?? '');
-
-  if (!APP_I18N_OPTIONS.supportedLangs.includes(language)) {
-    language = extractLocaleData({ headers: request.headers }).lang;
-  }
+  const language = await getRequestLanguage(request);
 
   await dynamicActivate(language);
 

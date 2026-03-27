@@ -1,8 +1,20 @@
 import { type Field, type Recipient, RecipientRole, SigningStatus } from '@prisma/client';
 
 import { NEXT_PUBLIC_WEBAPP_URL } from '../constants/app';
+import { type SupportedLanguageCodes, isValidLanguageCode } from '../constants/i18n';
 
-export const formatSigningLink = (token: string) => `${NEXT_PUBLIC_WEBAPP_URL()}/sign/${token}`;
+export const formatSigningLink = (
+  token: string,
+  language?: SupportedLanguageCodes | string | null,
+) => {
+  const url = new URL(`/sign/${token}`, NEXT_PUBLIC_WEBAPP_URL());
+
+  if (language && isValidLanguageCode(language)) {
+    url.searchParams.set('lang', language);
+  }
+
+  return url.toString();
+};
 
 /**
  * Whether a recipient can be modified by the document owner.

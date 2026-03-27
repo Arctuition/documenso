@@ -3589,8 +3589,8 @@ msgid "Next"
 msgstr "Next"
 
 #: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
-msgid "Next field"
-msgstr "Next field"
+msgid "Next field ({unsignedFieldsCount})"
+msgstr "Next field ({unsignedFieldsCount})"
 
 #: apps/remix/app/components/tables/documents-table-empty-state.tsx
 msgid "No active drafts"
@@ -5965,8 +5965,11 @@ msgstr "Two-Factor Re-Authentication"
 
 #: apps/remix/app/components/tables/templates-table.tsx
 #: apps/remix/app/components/tables/admin-document-recipient-item-table.tsx
-#: packages/lib/constants/document.ts
 msgid "Type"
+msgstr "Type"
+
+#: packages/lib/constants/document.ts
+msgid "Type Signature"
 msgstr "Type"
 
 #: apps/remix/app/components/general/app-command-menu.tsx

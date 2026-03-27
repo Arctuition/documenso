@@ -16,6 +16,7 @@ import { StackAvatars } from './stack-avatars';
 export type StackAvatarsWithTooltipProps = {
   documentStatus: DocumentStatus;
   recipients: Recipient[];
+  language?: string | null;
   position?: 'top' | 'bottom';
   children?: React.ReactNode;
 };
@@ -23,6 +24,7 @@ export type StackAvatarsWithTooltipProps = {
 export const StackAvatarsWithTooltip = ({
   documentStatus,
   recipients,
+  language,
   position,
   children,
 }: StackAvatarsWithTooltipProps) => {
@@ -127,6 +129,7 @@ export const StackAvatarsWithTooltip = ({
               key={recipient.id}
               recipient={recipient}
               documentStatus={documentStatus}
+              language={language}
             />
           ))}
         </div>
@@ -142,6 +145,7 @@ export const StackAvatarsWithTooltip = ({
               key={recipient.id}
               recipient={recipient}
               documentStatus={documentStatus}
+              language={language}
             />
           ))}
         </div>
@@ -157,6 +161,7 @@ export const StackAvatarsWithTooltip = ({
               key={recipient.id}
               recipient={recipient}
               documentStatus={documentStatus}
+              language={language}
             />
           ))}
         </div>

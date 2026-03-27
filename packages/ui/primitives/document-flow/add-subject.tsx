@@ -232,7 +232,10 @@ export const AddSubjectFormPartial = ({
 
                         {recipient.role !== RecipientRole.CC && (
                           <CopyTextButton
-                            value={formatSigningLink(recipient.token)}
+                            value={formatSigningLink(
+                              recipient.token,
+                              document.documentMeta?.language,
+                            )}
                             onCopySuccess={() => {
                               toast({
                                 title: _(msg`Copied to clipboard`),
