@@ -127,7 +127,7 @@ export const DocumentSigningCompleteDialog = ({
           disabled={disabled}
         >
           {match({ isComplete, role })
-            .with({ isComplete: false }, () => <Trans>Next field({unsignedFieldsCount})</Trans>)
+            .with({ isComplete: false }, () => <Trans>Next field ({unsignedFieldsCount})</Trans>)
             .with({ isComplete: true, role: RecipientRole.APPROVER }, () => <Trans>Approve</Trans>)
             .with({ isComplete: true, role: RecipientRole.VIEWER }, () => (
               <Trans>Mark as viewed</Trans>

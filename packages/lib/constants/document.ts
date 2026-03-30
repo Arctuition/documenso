@@ -52,7 +52,7 @@ export const DOCUMENT_SIGNATURE_TYPES = {
     value: DocumentSignatureType.DRAW,
   },
   [DocumentSignatureType.TYPE]: {
-    label: msg`Type`,
+    label: msg`Type Signature`,
     value: DocumentSignatureType.TYPE,
   },
   [DocumentSignatureType.UPLOAD]: {

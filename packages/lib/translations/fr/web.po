@@ -1561,6 +1561,10 @@ msgstr "Effacer les filtres"
 msgid "Clear Signature"
 msgstr "Effacer la signature"
 
+#: packages/ui/primitives/signature-pad/signature-pad-type.tsx
+msgid "Type your signature"
+msgstr "Saisissez votre signature"
+
 #: apps/remix/app/components/tables/settings-public-profile-templates-table.tsx
 msgid "Click here to get started"
 msgstr "Cliquez ici pour commencer"
@@ -2541,7 +2545,7 @@ msgstr "Faites glisser et déposez votre PDF ici."
 
 #: packages/lib/constants/document.ts
 msgid "Draw"
-msgstr ""
+msgstr "Dessiner"
 
 #: packages/ui/primitives/template-flow/add-template-fields.tsx
 #: packages/ui/primitives/document-flow/add-fields.tsx
@@ -3433,7 +3437,7 @@ msgstr "Gestionnaire"
 
 #: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
 msgid "Mark as viewed"
-msgstr ""
+msgstr "Marquer comme vu"
 
 #: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
 #: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
@@ -3594,8 +3598,12 @@ msgid "Next"
 msgstr "Suivant"
 
 #: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
-msgid "Next field"
-msgstr "Champ suivant"
+msgid "Next field ({unsignedFieldsCount})"
+msgstr "Champ suivant ({unsignedFieldsCount})"
+
+#: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
+msgid "Finish"
+msgstr "Terminer"
 
 #: apps/remix/app/components/tables/documents-table-empty-state.tsx
 msgid "No active drafts"
@@ -4053,7 +4061,7 @@ msgstr "Veuillez fournir un token de votre authentificateur, ou un code de secou
 
 #: apps/remix/app/components/general/document-signing/document-signing-form.tsx
 msgid "Please review the document before approving."
-msgstr ""
+msgstr "Veuillez examiner le document avant d'approuver."
 
 #: apps/remix/app/components/general/document-signing/document-signing-form.tsx
 msgid "Please review the document before signing."
@@ -5968,9 +5976,12 @@ msgstr "Ré-authentification à deux facteurs"
 
 #: apps/remix/app/components/tables/templates-table.tsx
 #: apps/remix/app/components/tables/admin-document-recipient-item-table.tsx
-#: packages/lib/constants/document.ts
 msgid "Type"
 msgstr "Type"
+
+#: packages/lib/constants/document.ts
+msgid "Type Signature"
+msgstr "Saisir"
 
 #: apps/remix/app/components/general/app-command-menu.tsx
 msgid "Type a command or search..."
@@ -6164,7 +6175,7 @@ msgstr "Améliorer"
 
 #: packages/lib/constants/document.ts
 msgid "Upload"
-msgstr ""
+msgstr "Télécharger"
 
 #: apps/remix/app/components/dialogs/template-bulk-send-dialog.tsx
 msgid "Upload a CSV file to create multiple documents from this template. Each row represents one document with its recipient details."
@@ -7262,3 +7273,11 @@ msgstr "Votre token a été créé avec succès ! Assurez-vous de le copier car 
 #: apps/remix/app/routes/_authenticated+/settings+/tokens.tsx
 msgid "Your tokens will be shown here once you create them."
 msgstr "Vos tokens seront affichés ici une fois que vous les aurez créés."
+
+#: apps/remix/app/components/general/document-signing/document-signing-page-view.tsx
+msgid "You are invited to sign this document"
+msgstr "Vous êtes invité(e) à signer ce document"
+
+#: apps/remix/app/components/general/document-signing/document-signing-page-view.tsx
+msgid "You are invited to approve this document"
+msgstr "Vous êtes invité(e) à approuver ce document"
