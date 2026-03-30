@@ -4721,7 +4721,7 @@ msgstr "Signer"
 #. placeholder {0}: recipient.name
 #: apps/remix/app/components/general/document-signing/document-signing-signature-field.tsx
 msgid "Sign as {0}"
-msgstr ""
+msgstr "Signer comme {0}"
 
 #. placeholder {0}: recipient.name
 #. placeholder {1}: recipient.email

@@ -2899,7 +2899,7 @@ msgstr "Rozmiar pliku przekracza limit {APP_DOCUMENT_UPLOAD_SIZE_LIMIT} MB"
 
 #: apps/remix/app/components/general/document-signing/document-signing-complete-dialog.tsx
 msgid "Finish"
-msgstr ""
+msgstr "Zakończ"
 
 #: packages/ui/primitives/document-flow/field-items-advanced-settings/text-field.tsx
 #: packages/ui/primitives/document-flow/field-items-advanced-settings/number-field.tsx
@@ -4721,7 +4721,7 @@ msgstr "Podpisz"
 #. placeholder {0}: recipient.name
 #: apps/remix/app/components/general/document-signing/document-signing-signature-field.tsx
 msgid "Sign as {0}"
-msgstr ""
+msgstr "Podpisz jako {0}"
 
 #. placeholder {0}: recipient.name
 #. placeholder {1}: recipient.email
@@ -6821,11 +6821,11 @@ msgstr "Obecnie aktualizujesz klucz zabezpieczeń <0>{passkeyName}</0>."
 
 #: apps/remix/app/components/general/document-signing/document-signing-page-view.tsx
 msgid "You are invited to approve this document"
-msgstr ""
+msgstr "Zostałeś(aś) zaproszony(a) do zatwierdzenia tego dokumentu"
 
 #: apps/remix/app/components/general/document-signing/document-signing-page-view.tsx
 msgid "You are invited to sign this document"
-msgstr ""
+msgstr "Zostałeś(aś) zaproszony(a) do podpisania tego dokumentu"
 
 #: apps/remix/app/components/dialogs/template-move-dialog.tsx
 msgid "You are not a member of this team."
