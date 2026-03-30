@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { msg } from '@lingui/core/macro';
-import { useLingui } from '@lingui/react/macro';
+import { useLingui } from '@lingui/react';
 
 import { cn } from '../../lib/utils';
 
