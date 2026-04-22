@@ -3,6 +3,7 @@
   "version": "1.10.0-rc.2",
   "scripts": {
     "build": "turbo run build",
+    "build:prod": "NEXT_PUBLIC_ASSET_URL=https://d1vighrmh1afig.cloudfront.net/ CDN_S3_BUCKET=arc-esign-assets turbo run build",
     "dev": "turbo run dev --filter=@documenso/remix",
     "dev:remix": "turbo run dev --filter=@documenso/remix",
     "dev:docs": "turbo run dev --filter=@documenso/documentation",
