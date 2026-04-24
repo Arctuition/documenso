@@ -186,7 +186,7 @@ export const DocumentSigningFieldContainer = ({
         {!field.inserted && !loading && !readOnlyField && (
           <button
             type="submit"
-            className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-md border"
+            className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
             style={{ width: 'max(100%, 44px)', height: 'max(100%, 44px)' }}
             onClick={async () => handleInsertField()}
           />
