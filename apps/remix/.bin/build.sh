@@ -28,6 +28,9 @@ npm run build:server
 # Copy over the entry point for the server.
 cp server/main.js build/server/main.js
 
+# Copy over the Sentry server instrumentation (imported by main.js).
+cp server/instrument.server.mjs build/server/instrument.server.mjs
+
 # Copy over all web.js translations
 cp -r ../../packages/lib/translations build/server/hono/packages/lib/translations
 

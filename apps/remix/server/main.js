@@ -5,6 +5,9 @@
  * Note:
  *  This file will be copied to the build folder during build time.
  *  Running this file will not work without a build.
+ *
+ *  Sentry is initialized via `node --import ./build/server/instrument.server.mjs`
+ *  (see the `start` script) so it patches modules before this file is imported.
  */
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';

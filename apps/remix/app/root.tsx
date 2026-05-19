@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 
+import * as Sentry from '@sentry/react-router';
 import Plausible from 'plausible-tracker';
 import {
   Links,
@@ -178,6 +179,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 
   if (errorCode !== 404) {
     console.error('[RootErrorBoundary]', error);
+    Sentry.captureException(error);
   }
 
   return <GenericErrorLayout errorCode={errorCode} />;

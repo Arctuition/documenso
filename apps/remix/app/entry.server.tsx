@@ -1,6 +1,11 @@
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
 import { createReadableStreamFromReadable } from '@react-router/node';
+import {
+  createSentryHandleError,
+  getMetaTagTransformer,
+  wrapSentryHandleRequest,
+} from '@sentry/react-router';
 import { isbot } from 'isbot';
 import { PassThrough } from 'node:stream';
 import type { RenderToPipeableStreamOptions } from 'react-dom/server';
@@ -14,7 +19,13 @@ import { getRequestLanguage } from './utils/get-request-language.server';
 
 export const streamTimeout = 5_000;
 
-export default async function handleRequest(
+/**
+ * Report errors thrown in loaders/actions and during server rendering to Sentry.
+ * Aborted requests are ignored by the Sentry handler.
+ */
+export const handleError = createSentryHandleError({ logErrors: true });
+
+async function handleRequest(
   request: Request,
   responseStatusCode: number,
   responseHeaders: Headers,
@@ -53,7 +64,9 @@ export default async function handleRequest(
             }),
           );
 
-          pipe(body);
+          // Pipe through Sentry's transformer so distributed tracing meta
+          // tags are injected into the streamed HTML <head>.
+          pipe(getMetaTagTransformer(body));
         },
         onShellError(error: unknown) {
           reject(error);
@@ -75,3 +88,5 @@ export default async function handleRequest(
     setTimeout(abort, streamTimeout + 1000);
   });
 }
+
+export default wrapSentryHandleRequest(handleRequest);

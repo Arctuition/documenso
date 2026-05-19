@@ -2,6 +2,23 @@ declare namespace NodeJS {
   export interface ProcessEnv {
     NEXT_PUBLIC_WEBAPP_URL?: string;
 
+    /**
+     * Sentry error & performance monitoring.
+     *
+     * NEXT_PUBLIC_SENTRY_DSN is exposed to the browser (it is a public value).
+     * Leave blank to fully disable Sentry on both client and server.
+     */
+    NEXT_PUBLIC_SENTRY_DSN?: string;
+    NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE?: string;
+
+    /**
+     * Optional: only used at build time to upload source maps to Sentry.
+     * Source map upload is skipped unless SENTRY_AUTH_TOKEN is set.
+     */
+    SENTRY_AUTH_TOKEN?: string;
+    SENTRY_ORG?: string;
+    SENTRY_PROJECT?: string;
+
     NEXT_PRIVATE_GOOGLE_CLIENT_ID?: string;
     NEXT_PRIVATE_GOOGLE_CLIENT_SECRET?: string;
 
