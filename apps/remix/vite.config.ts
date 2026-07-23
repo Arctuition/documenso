@@ -14,6 +14,7 @@ import tsconfigPaths from 'vite-tsconfig-paths';
  * Do not configure any envs here.
  */
 export default defineConfig({
+  base: process.env.NEXT_PUBLIC_ASSET_URL ?? '/',
   css: {
     postcss: {
       plugins: [tailwindcss, autoprefixer],

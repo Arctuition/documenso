@@ -79,6 +79,13 @@ export async function loader({ request }: Route.LoaderArgs) {
   const lang = await getRequestLanguage(request);
   // const theme = getTheme();
 
+  const urlLang = new URL(request.url).searchParams.get('lang');
+  const headers: Record<string, string> = {};
+
+  if (!urlLang) {
+    headers['Set-Cookie'] = await langCookie.serialize(lang);
+  }
+
   return data(
     {
       lang,
@@ -93,11 +100,7 @@ export async function loader({ request }: Route.LoaderArgs) {
         : null,
       publicEnv: createPublicEnv(),
     },
-    {
-      headers: {
-        'Set-Cookie': await langCookie.serialize(lang),
-      },
-    },
+    { headers },
   );
 }
 
