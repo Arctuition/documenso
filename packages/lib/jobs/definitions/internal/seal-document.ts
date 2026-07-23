@@ -10,6 +10,9 @@ const SEAL_DOCUMENT_JOB_DEFINITION_SCHEMA = z.object({
   sendEmail: z.boolean().optional(),
   isResealing: z.boolean().optional(),
   requestMetadata: ZRequestMetadataSchema.optional(),
+  // Opaque host-app signing-context value, carried through to the
+  // DOCUMENT_COMPLETED webhook. See webhook-payload.ts.
+  signingVerificationId: z.string().optional(),
 });
 
 export type TSealDocumentJobDefinition = z.infer<typeof SEAL_DOCUMENT_JOB_DEFINITION_SCHEMA>;

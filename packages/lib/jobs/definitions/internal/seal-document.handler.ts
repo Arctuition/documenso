@@ -36,7 +36,13 @@ export const run = async ({
   payload: TSealDocumentJobDefinition;
   io: JobRunIO;
 }) => {
-  const { documentId, sendEmail = true, isResealing = false, requestMetadata } = payload;
+  const {
+    documentId,
+    sendEmail = true,
+    isResealing = false,
+    requestMetadata,
+    signingVerificationId,
+  } = payload;
 
   const document = await prisma.document.findFirstOrThrow({
     where: {
@@ -276,7 +282,10 @@ export const run = async ({
     event: isRejected
       ? WebhookTriggerEvents.DOCUMENT_REJECTED
       : WebhookTriggerEvents.DOCUMENT_COMPLETED,
-    data: ZWebhookDocumentSchema.parse(mapDocumentToWebhookDocumentPayload(updatedDocument)),
+    data: ZWebhookDocumentSchema.parse({
+      ...mapDocumentToWebhookDocumentPayload(updatedDocument),
+      signingVerificationId,
+    }),
     userId: updatedDocument.userId,
     teamId: updatedDocument.teamId ?? undefined,
   });

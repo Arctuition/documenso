@@ -436,13 +436,14 @@ export const recipientRouter = router({
   completeDocumentWithToken: procedure
     .input(ZCompleteDocumentWithTokenMutationSchema)
     .mutation(async ({ input, ctx }) => {
-      const { token, documentId, authOptions, nextSigner } = input;
+      const { token, documentId, authOptions, nextSigner, signingVerificationId } = input;
 
       return await completeDocumentWithToken({
         token,
         documentId,
         authOptions,
         nextSigner,
+        signingVerificationId,
         userId: ctx.user?.id,
         requestMetadata: ctx.metadata.requestMetadata,
       });

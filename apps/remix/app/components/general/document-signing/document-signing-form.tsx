@@ -5,7 +5,7 @@ import { useLingui } from '@lingui/react';
 import { Trans } from '@lingui/react/macro';
 import { type Field, FieldType, type Recipient, RecipientRole } from '@prisma/client';
 import { Controller, useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 
 import { useAnalytics } from '@documenso/lib/client-only/hooks/use-analytics';
 import { useOptionalSession } from '@documenso/lib/client-only/providers/session';
@@ -58,6 +58,7 @@ export const DocumentSigningForm = ({
 
   const navigate = useNavigate();
   const analytics = useAnalytics();
+  const [searchParams] = useSearchParams();
 
   const assistantSignersId = useId();
 
@@ -131,11 +132,14 @@ export const DocumentSigningForm = ({
     authOptions?: TRecipientActionAuth,
     nextSigner?: { email: string; name: string },
   ) => {
+    const signingVerificationId = searchParams.get('signingVerificationId');
+
     const payload = {
       token: recipient.token,
       documentId: document.id,
       authOptions,
       ...(nextSigner?.email && nextSigner?.name ? { nextSigner } : {}),
+      ...(signingVerificationId ? { signingVerificationId } : {}),
     };
 
     await completeDocumentWithToken(payload);

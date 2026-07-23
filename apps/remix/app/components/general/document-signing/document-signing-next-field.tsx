@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { useLingui } from '@lingui/react';
 import { Trans } from '@lingui/react/macro';
 import { type Field, type Recipient } from '@prisma/client';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 
 import { useAnalytics } from '@documenso/lib/client-only/hooks/use-analytics';
 import type { DocumentAndSender } from '@documenso/lib/server-only/document/get-document-by-token';
@@ -38,6 +38,7 @@ export const DocumentSigningNextField = ({
 
   const navigate = useNavigate();
   const analytics = useAnalytics();
+  const [searchParams] = useSearchParams();
 
   const {
     mutateAsync: completeDocumentWithToken,
@@ -68,11 +69,14 @@ export const DocumentSigningNextField = ({
     authOptions?: TRecipientActionAuth,
     nextSigner?: { email: string; name: string },
   ) => {
+    const signingVerificationId = searchParams.get('signingVerificationId');
+
     const payload = {
       token: recipient.token,
       documentId: document.id,
       authOptions,
       ...(nextSigner?.email && nextSigner?.name ? { nextSigner } : {}),
+      ...(signingVerificationId ? { signingVerificationId } : {}),
     };
 
     await completeDocumentWithToken(payload);

@@ -79,6 +79,14 @@ export const ZWebhookDocumentSchema = z.object({
   recipients: z.array(ZWebhookRecipientSchema),
 
   /**
+   * Opaque signing-context value passed through from the signing URL by the
+   * host application (ArcSite). Documenso does not interpret it; it is echoed
+   * back on DOCUMENT_SIGNED / DOCUMENT_COMPLETED so the host can attribute the
+   * completing session. Absent for signatures that did not carry it.
+   */
+  signingVerificationId: z.string().nullish(),
+
+  /**
    * Legacy field for backwards compatibility.
    */
   Recipient: z.array(ZWebhookRecipientSchema),

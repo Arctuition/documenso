@@ -37,6 +37,9 @@ export type CompleteDocumentWithTokenOptions = {
     email: string;
     name: string;
   };
+  // Opaque host-app signing-context value from the signing URL, echoed back on
+  // the completion webhook. Documenso does not interpret it. See webhook-payload.ts.
+  signingVerificationId?: string;
 };
 
 const getDocument = async ({ token, documentId }: CompleteDocumentWithTokenOptions) => {
@@ -65,6 +68,7 @@ export const completeDocumentWithToken = async ({
   documentId,
   requestMetadata,
   nextSigner,
+  signingVerificationId,
 }: CompleteDocumentWithTokenOptions) => {
   const document = await getDocument({ token, documentId });
 
@@ -271,6 +275,7 @@ export const completeDocumentWithToken = async ({
       payload: {
         documentId: document.id,
         requestMetadata,
+        signingVerificationId,
       },
     });
   }
@@ -287,7 +292,10 @@ export const completeDocumentWithToken = async ({
 
   await triggerWebhook({
     event: WebhookTriggerEvents.DOCUMENT_SIGNED,
-    data: ZWebhookDocumentSchema.parse(mapDocumentToWebhookDocumentPayload(updatedDocument)),
+    data: ZWebhookDocumentSchema.parse({
+      ...mapDocumentToWebhookDocumentPayload(updatedDocument),
+      signingVerificationId,
+    }),
     userId: updatedDocument.userId,
     teamId: updatedDocument.teamId ?? undefined,
   });

@@ -218,6 +218,9 @@ export const ZCompleteDocumentWithTokenMutationSchema = z.object({
       name: z.string().min(1),
     })
     .optional(),
+  // Opaque host-app signing-context value from the signing URL, echoed back on
+  // the completion webhook. See complete-document-with-token.ts.
+  signingVerificationId: z.string().optional(),
 });
 
 export type TCompleteDocumentWithTokenMutationSchema = z.infer<
