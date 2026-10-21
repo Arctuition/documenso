@@ -1,14 +1,17 @@
-import { DocumentSigningOrder, SigningStatus } from '@prisma/client';
-
 import { prisma } from '@documenso/prisma';
+import { DocumentSigningOrder, EnvelopeType } from '@prisma/client';
+
+import { isTspEnvelope } from '../../types/signature-level';
+import { isRecipientTurnBySigningOrder } from '../../utils/recipient-groups';
 
 export type GetIsRecipientTurnOptions = {
   token: string;
 };
 
 export async function getIsRecipientsTurnToSign({ token }: GetIsRecipientTurnOptions) {
-  const document = await prisma.document.findFirstOrThrow({
+  const envelope = await prisma.envelope.findFirstOrThrow({
     where: {
+      type: EnvelopeType.DOCUMENT,
       recipients: {
         some: {
           token,
@@ -17,31 +20,21 @@ export async function getIsRecipientsTurnToSign({ token }: GetIsRecipientTurnOpt
     },
     include: {
       documentMeta: true,
-      recipients: {
-        orderBy: {
-          signingOrder: 'asc',
-        },
-      },
+      recipients: true,
     },
   });
 
-  if (document.documentMeta?.signingOrder !== DocumentSigningOrder.SEQUENTIAL) {
+  if (envelope.documentMeta?.signingOrder !== DocumentSigningOrder.SEQUENTIAL) {
     return true;
   }
 
-  const { recipients } = document;
+  const currentRecipient = envelope.recipients.find((recipient) => recipient.token === token);
 
-  const currentRecipientIndex = recipients.findIndex((r) => r.token === token);
-
-  if (currentRecipientIndex === -1) {
+  if (!currentRecipient) {
     return false;
   }
 
-  for (let i = 0; i < currentRecipientIndex; i++) {
-    if (recipients[i].signingStatus !== SigningStatus.SIGNED) {
-      return false;
-    }
-  }
-
-  return true;
+  return isRecipientTurnBySigningOrder(envelope.recipients, currentRecipient, {
+    strictlySequential: isTspEnvelope(envelope),
+  });
 }

@@ -1,12 +1,5 @@
-import { useEffect, useState } from 'react';
-
-import { msg } from '@lingui/core/macro';
-import { useLingui } from '@lingui/react';
-import { Trans } from '@lingui/react/macro';
-import { Hash, Loader } from 'lucide-react';
-import { useRevalidator } from 'react-router';
-
 import { validateNumberField } from '@documenso/lib/advanced-fields-validation/validate-number';
+import { useAnalytics } from '@documenso/lib/client-only/hooks/use-analytics';
 import { DO_NOT_INVALIDATE_QUERY_ON_MUTATION } from '@documenso/lib/constants/trpc';
 import { AppError, AppErrorCode } from '@documenso/lib/errors/app-error';
 import type { TRecipientActionAuth } from '@documenso/lib/types/document-auth';
@@ -22,9 +15,19 @@ import { Button } from '@documenso/ui/primitives/button';
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from '@documenso/ui/primitives/dialog';
 import { Input } from '@documenso/ui/primitives/input';
 import { useToast } from '@documenso/ui/primitives/use-toast';
+import { msg } from '@lingui/core/macro';
+import { useLingui } from '@lingui/react';
+import { Trans } from '@lingui/react/macro';
+import { useEffect, useState } from 'react';
+import { useRevalidator } from 'react-router';
 
 import { useRequiredDocumentSigningAuthContext } from './document-signing-auth-provider';
 import { DocumentSigningFieldContainer } from './document-signing-field-container';
+import {
+  DocumentSigningFieldsInserted,
+  DocumentSigningFieldsLoader,
+  DocumentSigningFieldsUninserted,
+} from './document-signing-fields';
 import { useDocumentSigningRecipientContext } from './document-signing-recipient-provider';
 
 type ValidationErrors = {
@@ -41,16 +44,13 @@ export type DocumentSigningNumberFieldProps = {
   onUnsignField?: (value: TRemovedSignedFieldWithTokenMutationSchema) => Promise<void> | void;
 };
 
-export const DocumentSigningNumberField = ({
-  field,
-  onSignField,
-  onUnsignField,
-}: DocumentSigningNumberFieldProps) => {
+export const DocumentSigningNumberField = ({ field, onSignField, onUnsignField }: DocumentSigningNumberFieldProps) => {
   const { _ } = useLingui();
   const { toast } = useToast();
   const { revalidate } = useRevalidator();
+  const analytics = useAnalytics();
 
-  const { recipient, targetSigner, isAssistantMode } = useDocumentSigningRecipientContext();
+  const { recipient, isAssistantMode } = useDocumentSigningRecipientContext();
 
   const [showNumberModal, setShowNumberModal] = useState(false);
 
@@ -58,9 +58,7 @@ export const DocumentSigningNumberField = ({
   const parsedFieldMeta = safeFieldMeta.success ? safeFieldMeta.data : null;
 
   const defaultValue = parsedFieldMeta?.value;
-  const [localNumber, setLocalNumber] = useState(
-    parsedFieldMeta?.value ? String(parsedFieldMeta.value) : '0',
-  );
+  const [localNumber, setLocalNumber] = useState(() => (parsedFieldMeta?.value ? String(parsedFieldMeta.value) : ''));
 
   const initialErrors: ValidationErrors = {
     isNumber: [],
@@ -77,10 +75,8 @@ export const DocumentSigningNumberField = ({
   const { mutateAsync: signFieldWithToken, isPending: isSignFieldWithTokenLoading } =
     trpc.field.signFieldWithToken.useMutation(DO_NOT_INVALIDATE_QUERY_ON_MUTATION);
 
-  const {
-    mutateAsync: removeSignedFieldWithToken,
-    isPending: isRemoveSignedFieldWithTokenLoading,
-  } = trpc.field.removeSignedFieldWithToken.useMutation(DO_NOT_INVALIDATE_QUERY_ON_MUTATION);
+  const { mutateAsync: removeSignedFieldWithToken, isPending: isRemoveSignedFieldWithTokenLoading } =
+    trpc.field.removeSignedFieldWithToken.useMutation(DO_NOT_INVALIDATE_QUERY_ON_MUTATION);
 
   const isLoading = isSignFieldWithTokenLoading || isRemoveSignedFieldWithTokenLoading;
 
@@ -148,6 +144,13 @@ export const DocumentSigningNumberField = ({
 
       console.error(err);
 
+      analytics.captureException(err, {
+        source: 'signing',
+        location: 'sign_field',
+        fieldType: field.type,
+        recipientId: field.recipientId,
+      });
+
       toast({
         title: _(msg`Error`),
         description: isAssistantMode
@@ -199,6 +202,13 @@ export const DocumentSigningNumberField = ({
     } catch (err) {
       console.error(err);
 
+      analytics.captureException(err, {
+        source: 'signing',
+        location: 'remove_field',
+        fieldType: field.type,
+        recipientId: field.recipientId,
+      });
+
       toast({
         title: _(msg`Error`),
         description: _(msg`An error occurred while removing the field.`),
@@ -209,16 +219,13 @@ export const DocumentSigningNumberField = ({
 
   useEffect(() => {
     if (!showNumberModal) {
-      setLocalNumber(parsedFieldMeta?.value ? String(parsedFieldMeta.value) : '0');
+      setLocalNumber(parsedFieldMeta?.value ? String(parsedFieldMeta.value) : '');
       setErrors(initialErrors);
     }
   }, [showNumberModal]);
 
   useEffect(() => {
-    if (
-      (!field.inserted && defaultValue && localNumber) ||
-      (!field.inserted && parsedFieldMeta?.readOnly && defaultValue)
-    ) {
+    if (!field.inserted && defaultValue) {
       void executeActionAuthProcedure({
         onReauthFormSubmit: async (authOptions) => await onSign(authOptions),
         actionTarget: field.type,
@@ -230,9 +237,7 @@ export const DocumentSigningNumberField = ({
 
   if (parsedFieldMeta?.label) {
     fieldDisplayName =
-      parsedFieldMeta.label.length > 20
-        ? parsedFieldMeta.label.substring(0, 20) + '...'
-        : parsedFieldMeta.label;
+      parsedFieldMeta.label.length > 20 ? parsedFieldMeta.label.substring(0, 20) + '...' : parsedFieldMeta.label;
   }
 
   const userInputHasErrors = Object.values(errors).some((error) => error.length > 0);
@@ -245,52 +250,19 @@ export const DocumentSigningNumberField = ({
       onRemove={onRemove}
       type="Number"
     >
-      {isLoading && (
-        <div className="bg-background absolute inset-0 flex items-center justify-center rounded-md">
-          <Loader className="text-primary h-5 w-5 animate-spin md:h-8 md:w-8" />
-        </div>
-      )}
+      {isLoading && <DocumentSigningFieldsLoader />}
 
-      {!field.inserted && (
-        <p
-          className={cn(
-            'group-hover:text-primary text-muted-foreground flex flex-col items-center justify-center duration-200',
-            {
-              'group-hover:text-yellow-300': !field.inserted && !parsedFieldMeta?.required,
-              'group-hover:text-red-300': !field.inserted && parsedFieldMeta?.required,
-            },
-          )}
-        >
-          <span className="flex items-center justify-center gap-x-1">
-            <Hash className="h-[clamp(0.625rem,20cqw,0.925rem)] w-[clamp(0.625rem,20cqw,0.925rem)]" />{' '}
-            <span className="text-[clamp(0.425rem,25cqw,0.825rem)]">{fieldDisplayName}</span>
-          </span>
-        </p>
-      )}
+      {!field.inserted && <DocumentSigningFieldsUninserted>{fieldDisplayName}</DocumentSigningFieldsUninserted>}
 
       {field.inserted && (
-        <div className="flex h-full w-full items-center">
-          <p
-            className={cn(
-              'text-muted-foreground dark:text-background/80 w-full text-[clamp(0.425rem,25cqw,0.825rem)] duration-200',
-              {
-                'text-left': parsedFieldMeta?.textAlign === 'left',
-                'text-center':
-                  !parsedFieldMeta?.textAlign || parsedFieldMeta?.textAlign === 'center',
-                'text-right': parsedFieldMeta?.textAlign === 'right',
-              },
-            )}
-          >
-            {field.customText}
-          </p>
-        </div>
+        <DocumentSigningFieldsInserted textAlign={parsedFieldMeta?.textAlign}>
+          {field.customText}
+        </DocumentSigningFieldsInserted>
       )}
 
       <Dialog open={showNumberModal} onOpenChange={setShowNumberModal}>
         <DialogContent>
-          <DialogTitle>
-            {parsedFieldMeta?.label ? parsedFieldMeta?.label : <Trans>Number</Trans>}
-          </DialogTitle>
+          <DialogTitle>{parsedFieldMeta?.label ? parsedFieldMeta?.label : <Trans>Number</Trans>}</DialogTitle>
 
           <div>
             <Input
@@ -308,27 +280,27 @@ export const DocumentSigningNumberField = ({
           {userInputHasErrors && (
             <div>
               {errors.isNumber?.map((error, index) => (
-                <p key={index} className="mt-2 text-sm text-red-500">
+                <p key={index} className="mt-2 text-red-500 text-sm">
                   {error}
                 </p>
               ))}
               {errors.required?.map((error, index) => (
-                <p key={index} className="mt-2 text-sm text-red-500">
+                <p key={index} className="mt-2 text-red-500 text-sm">
                   {error}
                 </p>
               ))}
               {errors.minValue?.map((error, index) => (
-                <p key={index} className="mt-2 text-sm text-red-500">
+                <p key={index} className="mt-2 text-red-500 text-sm">
                   {error}
                 </p>
               ))}
               {errors.maxValue?.map((error, index) => (
-                <p key={index} className="mt-2 text-sm text-red-500">
+                <p key={index} className="mt-2 text-red-500 text-sm">
                   {error}
                 </p>
               ))}
               {errors.numberFormat?.map((error, index) => (
-                <p key={index} className="mt-2 text-sm text-red-500">
+                <p key={index} className="mt-2 text-red-500 text-sm">
                   {error}
                 </p>
               ))}
@@ -339,11 +311,11 @@ export const DocumentSigningNumberField = ({
             <div className="flex w-full flex-1 flex-nowrap gap-4">
               <Button
                 type="button"
-                className="dark:bg-muted dark:hover:bg-muted/80 flex-1 bg-black/5 hover:bg-black/10"
+                className="flex-1"
                 variant="secondary"
                 onClick={() => {
                   setShowNumberModal(false);
-                  setLocalNumber('');
+                  setLocalNumber(parsedFieldMeta?.value ? String(parsedFieldMeta.value) : '');
                 }}
               >
                 <Trans>Cancel</Trans>

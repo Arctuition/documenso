@@ -1,15 +1,5 @@
-import { useLayoutEffect, useRef, useState } from 'react';
-
-import { msg } from '@lingui/core/macro';
-import { useLingui } from '@lingui/react';
-import { Trans } from '@lingui/react/macro';
-import { Loader } from 'lucide-react';
-import { useRevalidator } from 'react-router';
-
-import {
-  DEFAULT_DOCUMENT_DATE_FORMAT,
-  convertToLocalSystemFormat,
-} from '@documenso/lib/constants/date-formats';
+import { useAnalytics } from '@documenso/lib/client-only/hooks/use-analytics';
+import { convertToLocalSystemFormat, DEFAULT_DOCUMENT_DATE_FORMAT } from '@documenso/lib/constants/date-formats';
 import { DEFAULT_DOCUMENT_TIME_ZONE } from '@documenso/lib/constants/time-zones';
 import { DO_NOT_INVALIDATE_QUERY_ON_MUTATION } from '@documenso/lib/constants/trpc';
 import { AppError, AppErrorCode } from '@documenso/lib/errors/app-error';
@@ -23,8 +13,14 @@ import type {
 } from '@documenso/trpc/server/field-router/schema';
 import { cn } from '@documenso/ui/lib/utils';
 import { useToast } from '@documenso/ui/primitives/use-toast';
+import { msg } from '@lingui/core/macro';
+import { useLingui } from '@lingui/react';
+import { Trans } from '@lingui/react/macro';
+import { Loader } from 'lucide-react';
+import { useRevalidator } from 'react-router';
 
 import { DocumentSigningFieldContainer } from './document-signing-field-container';
+import { DocumentSigningFitText } from './document-signing-fit-text';
 import { useDocumentSigningRecipientContext } from './document-signing-recipient-provider';
 
 export type DocumentSigningDateFieldProps = {
@@ -45,16 +41,15 @@ export const DocumentSigningDateField = ({
   const { _ } = useLingui();
   const { toast } = useToast();
   const { revalidate } = useRevalidator();
+  const analytics = useAnalytics();
 
   const { recipient, isAssistantMode } = useDocumentSigningRecipientContext();
 
   const { mutateAsync: signFieldWithToken, isPending: isSignFieldWithTokenLoading } =
     trpc.field.signFieldWithToken.useMutation(DO_NOT_INVALIDATE_QUERY_ON_MUTATION);
 
-  const {
-    mutateAsync: removeSignedFieldWithToken,
-    isPending: isRemoveSignedFieldWithTokenLoading,
-  } = trpc.field.removeSignedFieldWithToken.useMutation(DO_NOT_INVALIDATE_QUERY_ON_MUTATION);
+  const { mutateAsync: removeSignedFieldWithToken, isPending: isRemoveSignedFieldWithTokenLoading } =
+    trpc.field.removeSignedFieldWithToken.useMutation(DO_NOT_INVALIDATE_QUERY_ON_MUTATION);
 
   const isLoading = isSignFieldWithTokenLoading || isRemoveSignedFieldWithTokenLoading;
 
@@ -93,6 +88,13 @@ export const DocumentSigningDateField = ({
 
       console.error(err);
 
+      analytics.captureException(err, {
+        source: 'signing',
+        location: 'sign_field',
+        fieldType: field.type,
+        recipientId: field.recipientId,
+      });
+
       toast({
         title: _(msg`Error`),
         description: isAssistantMode
@@ -121,6 +123,13 @@ export const DocumentSigningDateField = ({
     } catch (err) {
       console.error(err);
 
+      analytics.captureException(err, {
+        source: 'signing',
+        location: 'remove_field',
+        fieldType: field.type,
+        recipientId: field.recipientId,
+      });
+
       toast({
         title: _(msg`Error`),
         description: _(msg`An error occurred while removing the field.`),
@@ -128,84 +137,6 @@ export const DocumentSigningDateField = ({
       });
     }
   };
-
-  const containerRef = useRef<HTMLDivElement>(null);
-  const dateTextRef = useRef<HTMLParagraphElement>(null);
-  const placeholderRef = useRef<HTMLParagraphElement>(null);
-  const placeholderContainerRef = useRef<HTMLDivElement>(null);
-  const [fontSize, setFontSize] = useState(1);
-  const [placeholderFontSize, setPlaceholderFontSize] = useState(1);
-
-  useLayoutEffect(() => {
-    if (!dateTextRef.current || !containerRef.current || !field.inserted) {
-      return;
-    }
-
-    const adjustTextSize = () => {
-      const container = containerRef.current;
-      const text = dateTextRef.current;
-
-      if (!container || !text) {
-        return;
-      }
-
-      let size = 1;
-      text.style.fontSize = `${size}rem`;
-
-      while (
-        (text.scrollWidth > container.clientWidth || text.scrollHeight > container.clientHeight) &&
-        size > 0.2
-      ) {
-        size -= 0.05;
-        text.style.fontSize = `${size}rem`;
-      }
-
-      setFontSize(size);
-    };
-
-    const resizeObserver = new ResizeObserver(adjustTextSize);
-    resizeObserver.observe(containerRef.current);
-
-    adjustTextSize();
-
-    return () => resizeObserver.disconnect();
-  }, [field.inserted, localDateString]);
-
-  // Adjust placeholder text size to fit container
-  useLayoutEffect(() => {
-    if (!placeholderRef.current || !placeholderContainerRef.current || field.inserted) {
-      return;
-    }
-
-    const adjustPlaceholderSize = () => {
-      const container = placeholderContainerRef.current;
-      const text = placeholderRef.current;
-
-      if (!container || !text) {
-        return;
-      }
-
-      let size = 1;
-      text.style.fontSize = `${size}rem`;
-
-      while (
-        (text.scrollWidth > container.clientWidth || text.scrollHeight > container.clientHeight) &&
-        size > 0.2
-      ) {
-        size -= 0.05;
-        text.style.fontSize = `${size}rem`;
-      }
-
-      setPlaceholderFontSize(size);
-    };
-
-    const resizeObserver = new ResizeObserver(adjustPlaceholderSize);
-    resizeObserver.observe(placeholderContainerRef.current);
-
-    adjustPlaceholderSize();
-
-    return () => resizeObserver.disconnect();
-  }, [field.inserted]);
 
   return (
     <DocumentSigningFieldContainer
@@ -216,40 +147,32 @@ export const DocumentSigningDateField = ({
       tooltipText={isDifferentTime ? tooltipText : undefined}
     >
       {isLoading && (
-        <div className="bg-background absolute inset-0 flex items-center justify-center rounded-md">
-          <Loader className="text-primary h-5 w-5 animate-spin md:h-8 md:w-8" />
+        <div className="absolute inset-0 flex items-center justify-center rounded-md bg-background">
+          <Loader className="h-5 w-5 animate-spin text-primary md:h-8 md:w-8" />
         </div>
       )}
 
       {!field.inserted && (
-        <div
-          ref={placeholderContainerRef}
-          className="flex h-full w-full items-center justify-center p-2"
+        <DocumentSigningFitText
+          maxFontSize={1}
+          containerClassName="p-2"
+          className="w-full overflow-hidden text-center text-foreground leading-tight duration-200 group-hover:text-primary group-hover:text-recipient-green"
         >
-          <p
-            ref={placeholderRef}
-            className="group-hover:text-primary text-muted-foreground w-full overflow-hidden text-center leading-tight duration-200 group-hover:text-yellow-300"
-            style={{ fontSize: `${placeholderFontSize}rem` }}
-          >
-            <Trans>Date</Trans>
-          </p>
-        </div>
+          <Trans>Date</Trans>
+        </DocumentSigningFitText>
       )}
 
       {field.inserted && (
-        <div ref={containerRef} className="flex h-full w-full items-center">
-          <p
-            ref={dateTextRef}
-            style={{ fontSize: `${fontSize}rem` }}
-            className={cn('text-muted-foreground dark:text-background/80 w-full duration-200', {
-              'text-left': parsedFieldMeta?.textAlign === 'left',
-              'text-center': !parsedFieldMeta?.textAlign || parsedFieldMeta?.textAlign === 'center',
-              'text-right': parsedFieldMeta?.textAlign === 'right',
-            })}
-          >
-            {localDateString}
-          </p>
-        </div>
+        <DocumentSigningFitText
+          maxFontSize={1}
+          refitKey={localDateString}
+          className={cn('w-full whitespace-nowrap text-left text-foreground duration-200', {
+            '!text-center': parsedFieldMeta?.textAlign === 'center',
+            '!text-right': parsedFieldMeta?.textAlign === 'right',
+          })}
+        >
+          {localDateString}
+        </DocumentSigningFitText>
       )}
     </DocumentSigningFieldContainer>
   );

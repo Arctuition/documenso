@@ -1,21 +1,18 @@
+import path from 'node:path';
+import { PDF_VIEWER_PAGE_SELECTOR } from '@documenso/lib/constants/pdf-viewer';
+import { prisma } from '@documenso/prisma';
+import { seedBlankDocument, seedPendingDocumentWithFullFields } from '@documenso/prisma/seed/documents';
+import { seedUser } from '@documenso/prisma/seed/users';
 import { expect, test } from '@playwright/test';
 import {
   DocumentSigningOrder,
   DocumentStatus,
   FieldType,
   RecipientRole,
+  SendStatus,
   SigningStatus,
 } from '@prisma/client';
 import { DateTime } from 'luxon';
-import path from 'node:path';
-
-import { getRecipientByEmail } from '@documenso/lib/server-only/recipient/get-recipient-by-email';
-import { prisma } from '@documenso/prisma';
-import {
-  seedBlankDocument,
-  seedPendingDocumentWithFullFields,
-} from '@documenso/prisma/seed/documents';
-import { seedUser } from '@documenso/prisma/seed/users';
 
 import { apiSignin } from '../fixtures/authentication';
 import { signSignaturePad } from '../fixtures/signature';
@@ -23,7 +20,7 @@ import { signSignaturePad } from '../fixtures/signature';
 // Can't use the function in server-only/document due to it indirectly using
 // require imports.
 const getDocumentByToken = async (token: string) => {
-  return await prisma.document.findFirstOrThrow({
+  return await prisma.envelope.findFirstOrThrow({
     where: {
       recipients: {
         some: {
@@ -35,37 +32,41 @@ const getDocumentByToken = async (token: string) => {
 };
 
 test('[DOCUMENT_FLOW]: should be able to upload a PDF document', async ({ page }) => {
-  const user = await seedUser();
+  const { user, team } = await seedUser();
 
   await apiSignin({
     page,
     email: user.email,
+    redirectPath: `/t/${team.url}/documents`,
   });
 
   // Upload document.
   const [fileChooser] = await Promise.all([
     page.waitForEvent('filechooser'),
-    page.locator('input[type=file]').evaluate((e) => {
-      if (e instanceof HTMLInputElement) {
-        e.click();
-      }
-    }),
+    page
+      .locator('input[type=file]')
+      .nth(1)
+      .evaluate((e) => {
+        if (e instanceof HTMLInputElement) {
+          e.click();
+        }
+      }),
   ]);
 
   await fileChooser.setFiles(path.join(__dirname, '../../../../assets/example.pdf'));
 
   // Wait to be redirected to the edit page.
-  await page.waitForURL(/\/documents\/\d+/);
+  await page.waitForURL(new RegExp(`/t/${team.url}/documents/envelope_.*`));
 });
 
 test('[DOCUMENT_FLOW]: should be able to create a document', async ({ page }) => {
-  const user = await seedUser();
-  const document = await seedBlankDocument(user);
+  const { user, team } = await seedUser();
+  const document = await seedBlankDocument(user, team.id);
 
   await apiSignin({
     page,
     email: user.email,
-    redirectPath: `/documents/${document.id}/edit`,
+    redirectPath: `/t/${team.url}/documents/${document.id}/edit`,
   });
 
   const documentTitle = `example-${Date.now()}.pdf`;
@@ -89,7 +90,7 @@ test('[DOCUMENT_FLOW]: should be able to create a document', async ({ page }) =>
   await expect(page.getByRole('heading', { name: 'Add Fields' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Signature' }).click();
-  await page.locator('canvas').click({
+  await page.locator(PDF_VIEWER_PAGE_SELECTOR).click({
     position: {
       x: 100,
       y: 100,
@@ -97,7 +98,7 @@ test('[DOCUMENT_FLOW]: should be able to create a document', async ({ page }) =>
   });
 
   await page.getByRole('button', { name: 'Email' }).click();
-  await page.locator('canvas').click({
+  await page.locator(PDF_VIEWER_PAGE_SELECTOR).click({
     position: {
       x: 100,
       y: 200,
@@ -111,22 +112,20 @@ test('[DOCUMENT_FLOW]: should be able to create a document', async ({ page }) =>
   await page.waitForTimeout(2500);
   await page.getByRole('button', { name: 'Send' }).click();
 
-  await page.waitForURL('/documents');
+  await page.waitForURL(new RegExp(`/t/${team.url}/documents/envelope_.*`));
 
   // Assert document was created
   await expect(page.getByRole('link', { name: documentTitle })).toBeVisible();
 });
 
-test('[DOCUMENT_FLOW]: should be able to create a document with multiple recipients', async ({
-  page,
-}) => {
-  const user = await seedUser();
-  const document = await seedBlankDocument(user);
+test('[DOCUMENT_FLOW]: should be able to create a document with multiple recipients', async ({ page }) => {
+  const { user, team } = await seedUser();
+  const document = await seedBlankDocument(user, team.id);
 
   await apiSignin({
     page,
     email: user.email,
-    redirectPath: `/documents/${document.id}/edit`,
+    redirectPath: `/t/${team.url}/documents/${document.id}/edit`,
   });
 
   const documentTitle = `example-${Date.now()}.pdf`;
@@ -155,7 +154,7 @@ test('[DOCUMENT_FLOW]: should be able to create a document with multiple recipie
   await expect(page.getByRole('heading', { name: 'Add Fields' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Signature' }).click();
-  await page.locator('canvas').click({
+  await page.locator(PDF_VIEWER_PAGE_SELECTOR).click({
     position: {
       x: 100,
       y: 100,
@@ -163,7 +162,7 @@ test('[DOCUMENT_FLOW]: should be able to create a document with multiple recipie
   });
 
   await page.getByRole('button', { name: 'Email' }).click();
-  await page.locator('canvas').click({
+  await page.locator(PDF_VIEWER_PAGE_SELECTOR).click({
     position: {
       x: 100,
       y: 200,
@@ -174,7 +173,7 @@ test('[DOCUMENT_FLOW]: should be able to create a document with multiple recipie
   await page.getByText('User 2 (user2@example.com)').click();
 
   await page.getByRole('button', { name: 'Signature' }).click();
-  await page.locator('canvas').click({
+  await page.locator(PDF_VIEWER_PAGE_SELECTOR).click({
     position: {
       x: 500,
       y: 100,
@@ -182,7 +181,7 @@ test('[DOCUMENT_FLOW]: should be able to create a document with multiple recipie
   });
 
   await page.getByRole('button', { name: 'Email' }).click();
-  await page.locator('canvas').click({
+  await page.locator(PDF_VIEWER_PAGE_SELECTOR).click({
     position: {
       x: 500,
       y: 200,
@@ -196,7 +195,7 @@ test('[DOCUMENT_FLOW]: should be able to create a document with multiple recipie
   await page.waitForTimeout(2500);
   await page.getByRole('button', { name: 'Send' }).click();
 
-  await page.waitForURL('/documents');
+  await page.waitForURL(new RegExp(`/t/${team.url}/documents/envelope_.*`));
 
   // Assert document was created
   await expect(page.getByRole('link', { name: documentTitle })).toBeVisible();
@@ -205,13 +204,13 @@ test('[DOCUMENT_FLOW]: should be able to create a document with multiple recipie
 test('[DOCUMENT_FLOW]: should be able to create a document with multiple recipients with different roles', async ({
   page,
 }) => {
-  const user = await seedUser();
-  const document = await seedBlankDocument(user);
+  const { user, team } = await seedUser();
+  const document = await seedBlankDocument(user, team.id);
 
   await apiSignin({
     page,
     email: user.email,
-    redirectPath: `/documents/${document.id}/edit`,
+    redirectPath: `/t/${team.url}/documents/${document.id}/edit`,
   });
 
   // Set title
@@ -229,19 +228,24 @@ test('[DOCUMENT_FLOW]: should be able to create a document with multiple recipie
 
   await page.getByLabel('Email').nth(1).fill('user2@example.com');
   await page.getByLabel('Name').nth(1).fill('User 2');
-  await page.locator('button[role="combobox"]').nth(1).click();
+  await page.getByRole('combobox').nth(1).click();
   await page.getByLabel('Receives copy').click();
   await page.getByRole('button', { name: 'Add Signer' }).click();
 
-  await page.getByLabel('Email').nth(2).fill('user3@example.com');
-  await page.getByLabel('Name').nth(2).fill('User 3');
-  await page.locator('button[role="combobox"]').nth(2).click();
+  // CC recipients are kept last, so new rows are inserted above the CC row.
+  await expect(page.getByLabel('Email')).toHaveCount(3);
+
+  await page.getByLabel('Email').nth(1).fill('user3@example.com');
+  await page.getByLabel('Name').nth(1).fill('User 3');
+  await page.getByRole('combobox').nth(1).click();
   await page.getByLabel('Needs to approve').click();
   await page.getByRole('button', { name: 'Add Signer' }).click();
 
-  await page.getByLabel('Email').nth(3).fill('user4@example.com');
-  await page.getByLabel('Name').nth(3).fill('User 4');
-  await page.locator('button[role="combobox"]').nth(3).click();
+  await expect(page.getByLabel('Email')).toHaveCount(4);
+
+  await page.getByLabel('Email').nth(2).fill('user4@example.com');
+  await page.getByLabel('Name').nth(2).fill('User 4');
+  await page.getByRole('combobox').nth(2).click();
   await page.getByLabel('Needs to view').click();
 
   await page.getByRole('button', { name: 'Continue' }).click();
@@ -249,11 +253,11 @@ test('[DOCUMENT_FLOW]: should be able to create a document with multiple recipie
   // Add fields
   await expect(page.getByRole('heading', { name: 'Add Fields' })).toBeVisible();
 
-  await page.locator('button[role="combobox"]').nth(0).click();
-  await page.getByTitle('User 1 (user1@example.com)').click();
+  await page.getByRole('combobox').first().click();
+  await page.getByRole('option', { name: 'User 1 (user1@example.com)' }).click();
 
   await page.getByRole('button', { name: 'Signature' }).click();
-  await page.locator('canvas').click({
+  await page.locator(PDF_VIEWER_PAGE_SELECTOR).click({
     position: {
       x: 100,
       y: 100,
@@ -261,18 +265,18 @@ test('[DOCUMENT_FLOW]: should be able to create a document with multiple recipie
   });
 
   await page.getByRole('button', { name: 'Email' }).click();
-  await page.locator('canvas').click({
+  await page.locator(PDF_VIEWER_PAGE_SELECTOR).click({
     position: {
       x: 100,
       y: 200,
     },
   });
 
-  await page.locator('button[role="combobox"]').nth(0).click();
-  await page.getByTitle('User 3 (user3@example.com)').click();
+  await page.getByRole('combobox').first().click();
+  await page.getByRole('option', { name: 'User 3 (user3@example.com)' }).click();
 
   await page.getByRole('button', { name: 'Signature' }).click();
-  await page.locator('canvas').click({
+  await page.locator(PDF_VIEWER_PAGE_SELECTOR).click({
     position: {
       x: 500,
       y: 100,
@@ -280,7 +284,7 @@ test('[DOCUMENT_FLOW]: should be able to create a document with multiple recipie
   });
 
   await page.getByRole('button', { name: 'Email' }).click();
-  await page.locator('canvas').click({
+  await page.locator(PDF_VIEWER_PAGE_SELECTOR).click({
     position: {
       x: 500,
       y: 200,
@@ -294,22 +298,20 @@ test('[DOCUMENT_FLOW]: should be able to create a document with multiple recipie
   await page.waitForTimeout(2500);
   await page.getByRole('button', { name: 'Send' }).click();
 
-  await page.waitForURL('/documents');
+  await page.waitForURL(new RegExp(`/t/${team.url}/documents/envelope_.*`));
 
   // Assert document was created
   await expect(page.getByRole('link', { name: 'Test Title' })).toBeVisible();
 });
 
-test('[DOCUMENT_FLOW]: should not be able to create a document without signatures', async ({
-  page,
-}) => {
-  const user = await seedUser();
-  const document = await seedBlankDocument(user);
+test('[DOCUMENT_FLOW]: should not be able to create a document without signatures', async ({ page }) => {
+  const { user, team } = await seedUser();
+  const document = await seedBlankDocument(user, team.id);
 
   await apiSignin({
     page,
     email: user.email,
-    redirectPath: `/documents/${document.id}/edit`,
+    redirectPath: `/t/${team.url}/documents/${document.id}/edit`,
   });
 
   const documentTitle = `example-${Date.now()}.pdf`;
@@ -333,16 +335,15 @@ test('[DOCUMENT_FLOW]: should not be able to create a document without signature
   await expect(page.getByRole('heading', { name: 'Add Fields' })).toBeVisible();
   await page.getByRole('button', { name: 'Continue' }).click();
 
-  await expect(
-    page.getByRole('dialog').getByText('No signature field found').first(),
-  ).toBeVisible();
+  await expect(page.getByRole('dialog').getByText('No signature field found').first()).toBeVisible();
 });
 
 test('[DOCUMENT_FLOW]: should be able to approve a document', async ({ page }) => {
-  const user = await seedUser();
+  const { user, team } = await seedUser();
 
   const { recipients } = await seedPendingDocumentWithFullFields({
     owner: user,
+    teamId: team.id,
     recipients: ['user@documenso.com', 'approver@documenso.com'],
     recipientsCreateOptions: [
       {
@@ -377,12 +378,8 @@ test('[DOCUMENT_FLOW]: should be able to approve a document', async ({ page }) =
       await expect(page.locator(`#field-${field.id}`)).toHaveAttribute('data-inserted', 'true');
     }
 
-    await page
-      .getByRole('button', { name: role === RecipientRole.SIGNER ? 'Complete' : 'Approve' })
-      .click();
-    await page
-      .getByRole('button', { name: role === RecipientRole.SIGNER ? 'Sign' : 'Approve' })
-      .click();
+    await page.getByRole('button', { name: role === RecipientRole.SIGNER ? 'Complete' : 'Approve' }).click();
+    await page.getByRole('button', { name: role === RecipientRole.SIGNER ? 'Sign' : 'Approve' }).click();
     await page.waitForURL(`${signUrl}/complete`);
   }
 });
@@ -390,13 +387,13 @@ test('[DOCUMENT_FLOW]: should be able to approve a document', async ({ page }) =
 test('[DOCUMENT_FLOW]: should be able to create, send with redirect url, sign a document and redirect to redirect url', async ({
   page,
 }) => {
-  const user = await seedUser();
-  const document = await seedBlankDocument(user);
+  const { user, team } = await seedUser();
+  const document = await seedBlankDocument(user, team.id);
 
   await apiSignin({
     page,
     email: user.email,
-    redirectPath: `/documents/${document.id}/edit`,
+    redirectPath: `/t/${team.url}/documents/${document.id}/edit`,
   });
 
   const documentTitle = `example-${Date.now()}.pdf`;
@@ -427,19 +424,23 @@ test('[DOCUMENT_FLOW]: should be able to create, send with redirect url, sign a 
   await page.waitForTimeout(2500);
   await page.getByRole('button', { name: 'Send' }).click();
 
-  await page.waitForURL('/documents');
+  await page.waitForURL(`/t/${team.url}/documents`);
 
   // Assert document was created
   await expect(page.getByRole('link', { name: documentTitle })).toBeVisible();
   await page.getByRole('link', { name: documentTitle }).click();
-  await page.waitForURL(/\/documents\/\d+/);
+  await page.waitForURL(new RegExp(`/t/${team.url}/documents/envelope_.*`));
 
   const url = page.url().split('/');
   const documentId = url[url.length - 1];
 
-  const { token } = await getRecipientByEmail({
-    email: 'user1@example.com',
-    documentId: Number(documentId),
+  const { token } = await prisma.recipient.findFirstOrThrow({
+    where: {
+      envelope: {
+        id: documentId,
+      },
+      email: 'user1@example.com',
+    },
   });
 
   await page.goto(`/sign/${token}`);
@@ -450,7 +451,9 @@ test('[DOCUMENT_FLOW]: should be able to create, send with redirect url, sign a 
   expect(status).toBe(DocumentStatus.PENDING);
 
   await page.getByRole('button', { name: 'Approve' }).click();
-  await expect(page.getByRole('dialog').getByText('Complete Approval').first()).toBeVisible();
+  await expect(
+    page.getByRole('dialog').getByText('You are about to complete approving the following document').first(),
+  ).toBeVisible();
   await page.getByRole('button', { name: 'Approve' }).click();
 
   await page.waitForURL('https://documenso.com');
@@ -464,11 +467,12 @@ test('[DOCUMENT_FLOW]: should be able to create, send with redirect url, sign a 
 });
 
 test('[DOCUMENT_FLOW]: should be able to sign a document with custom date', async ({ page }) => {
-  const user = await seedUser();
+  const { user, team } = await seedUser();
 
   const now = DateTime.utc();
 
   const { document, recipients } = await seedPendingDocumentWithFullFields({
+    teamId: team.id,
     owner: user,
     recipients: ['user1@example.com'],
     fields: [FieldType.DATE],
@@ -494,7 +498,7 @@ test('[DOCUMENT_FLOW]: should be able to sign a document with custom date', asyn
       recipient: {
         email: 'user1@example.com',
       },
-      documentId: Number(document.id),
+      envelopeId: document.id,
     },
   });
 
@@ -513,13 +517,13 @@ test('[DOCUMENT_FLOW]: should be able to sign a document with custom date', asyn
 test('[DOCUMENT_FLOW]: should be able to create and sign a document with 3 recipients in sequential order', async ({
   page,
 }) => {
-  const user = await seedUser();
-  const document = await seedBlankDocument(user);
+  const { user, team } = await seedUser();
+  const document = await seedBlankDocument(user, team.id);
 
   await apiSignin({
     page,
     email: user.email,
-    redirectPath: `/documents/${document.id}/edit`,
+    redirectPath: `/t/${team.url}/documents/${document.id}/edit`,
   });
 
   const documentTitle = `Sequential-Signing-${Date.now()}.pdf`;
@@ -527,9 +531,6 @@ test('[DOCUMENT_FLOW]: should be able to create and sign a document with 3 recip
   await expect(page.getByRole('heading', { name: 'General' })).toBeVisible();
   await page.getByLabel('Title').fill(documentTitle);
   await page.getByRole('button', { name: 'Continue' }).click();
-
-  await expect(page.getByRole('heading', { name: 'Add Signers' })).toBeVisible();
-  await page.getByLabel('Enable signing order').check();
 
   for (let i = 1; i <= 3; i++) {
     if (i > 1) {
@@ -552,6 +553,9 @@ test('[DOCUMENT_FLOW]: should be able to create and sign a document with 3 recip
       .fill(`User ${i}`);
   }
 
+  await expect(page.getByRole('heading', { name: 'Add Signers' })).toBeVisible();
+  await page.getByLabel('Enable signing order').check();
+
   await page.getByRole('button', { name: 'Continue' }).click();
 
   await expect(page.getByRole('heading', { name: 'Add Fields' })).toBeVisible();
@@ -560,13 +564,15 @@ test('[DOCUMENT_FLOW]: should be able to create and sign a document with 3 recip
     if (i > 1) {
       await page.getByText(`User ${i} (user${i}@example.com)`).click();
     }
+
     await page.getByRole('button', { name: 'Signature' }).click();
-    await page.locator('canvas').click({
+    await page.locator(PDF_VIEWER_PAGE_SELECTOR).click({
       position: {
         x: 100,
         y: 100 * i,
       },
     });
+
     await page.getByText(`User ${i} (user${i}@example.com)`).click();
   }
 
@@ -576,11 +582,11 @@ test('[DOCUMENT_FLOW]: should be able to create and sign a document with 3 recip
   await page.waitForTimeout(2500);
   await page.getByRole('button', { name: 'Send' }).click();
 
-  await page.waitForURL('/documents');
+  await page.waitForURL(new RegExp(`/t/${team.url}/documents/envelope_.*`));
 
   await expect(page.getByRole('link', { name: documentTitle })).toBeVisible();
 
-  const createdDocument = await prisma.document.findFirst({
+  const createdDocument = await prisma.envelope.findFirst({
     where: { title: documentTitle },
     include: { recipients: true },
   });
@@ -589,19 +595,17 @@ test('[DOCUMENT_FLOW]: should be able to create and sign a document with 3 recip
   expect(createdDocument?.recipients.length).toBe(3);
 
   for (let i = 0; i < 3; i++) {
-    const recipient = createdDocument?.recipients.find(
-      (r) => r.email === `user${i + 1}@example.com`,
-    );
+    const recipient = createdDocument?.recipients.find((r) => r.email === `user${i + 1}@example.com`);
     expect(recipient).not.toBeNull();
 
     const fields = await prisma.field.findMany({
-      where: { recipientId: recipient?.id, documentId: createdDocument?.id },
+      where: { recipientId: recipient?.id, envelopeId: createdDocument?.id },
     });
     const recipientField = fields[0];
 
     if (i > 0) {
       const previousRecipient = await prisma.recipient.findFirst({
-        where: { email: `user${i}@example.com`, documentId: createdDocument?.id },
+        where: { email: `user${i}@example.com`, envelopeId: createdDocument?.id },
       });
 
       expect(previousRecipient?.signingStatus).toBe(SigningStatus.SIGNED);
@@ -627,31 +631,32 @@ test('[DOCUMENT_FLOW]: should be able to create and sign a document with 3 recip
   }
 
   // Wait for the document to be signed.
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(10000);
 
-  const finalDocument = await prisma.document.findFirst({
+  const finalDocument = await prisma.envelope.findFirst({
     where: { id: createdDocument?.id },
   });
 
   expect(finalDocument?.status).toBe(DocumentStatus.COMPLETED);
 });
 
-test('[DOCUMENT_FLOW]: should prevent out-of-order signing in sequential mode', async ({
-  page,
-}) => {
-  const user = await seedUser();
+test('[DOCUMENT_FLOW]: should prevent out-of-order signing in sequential mode', async ({ page }) => {
+  const { user, team } = await seedUser();
 
   const { document, recipients } = await seedPendingDocumentWithFullFields({
+    teamId: team.id,
     owner: user,
     recipients: ['user1@example.com', 'user2@example.com', 'user3@example.com'],
     fields: [FieldType.SIGNATURE],
     recipientsCreateOptions: [{ signingOrder: 1 }, { signingOrder: 2 }, { signingOrder: 3 }],
-    updateDocumentOptions: {
-      documentMeta: {
-        create: {
-          signingOrder: DocumentSigningOrder.SEQUENTIAL,
-        },
-      },
+  });
+
+  await prisma.documentMeta.update({
+    where: {
+      id: document.documentMetaId,
+    },
+    data: {
+      signingOrder: DocumentSigningOrder.SEQUENTIAL,
     },
   });
 
@@ -667,4 +672,183 @@ test('[DOCUMENT_FLOW]: should prevent out-of-order signing in sequential mode', 
 
   await expect(page).not.toHaveURL(`/sign/${activeRecipient?.token}/waiting`);
   await expect(page.getByRole('heading', { name: 'Sign Document' })).toBeVisible();
+});
+
+test('[DOCUMENT_FLOW]: should skip CC recipients in sequential signing order', async ({ page }) => {
+  const { user, team } = await seedUser();
+
+  const { document, recipients } = await seedPendingDocumentWithFullFields({
+    teamId: team.id,
+    owner: user,
+    recipients: ['signer1@example.com', 'cc@example.com', 'signer2@example.com'],
+    fields: [FieldType.SIGNATURE],
+    recipientsCreateOptions: [
+      { signingOrder: 1 },
+      {
+        // CC recipients are created pre-signed, mirroring production behaviour.
+        signingOrder: 2,
+        role: RecipientRole.CC,
+        signingStatus: SigningStatus.SIGNED,
+        sendStatus: SendStatus.SENT,
+      },
+      { signingOrder: 3 },
+    ],
+  });
+
+  await prisma.documentMeta.update({
+    where: {
+      id: document.documentMetaId,
+    },
+    data: {
+      signingOrder: DocumentSigningOrder.SEQUENTIAL,
+    },
+  });
+
+  const firstSigner = recipients.find((r) => r.email === 'signer1@example.com');
+  const ccRecipient = recipients.find((r) => r.email === 'cc@example.com');
+  const lastSigner = recipients.find((r) => r.email === 'signer2@example.com');
+
+  // CC recipients cannot have fields.
+  await prisma.field.deleteMany({
+    where: {
+      recipientId: ccRecipient?.id,
+    },
+  });
+
+  // Sequential order is enforced: the last signer must wait while the first signer is pending.
+  await page.goto(`/sign/${lastSigner?.token}`);
+  await expect(page).toHaveURL(`/sign/${lastSigner?.token}/waiting`);
+
+  // Sign as the first signer.
+  await page.goto(`/sign/${firstSigner?.token}`);
+  await expect(page.getByRole('heading', { name: 'Sign Document' })).toBeVisible();
+  await signSignaturePad(page);
+
+  const firstSignerField = await prisma.field.findFirstOrThrow({
+    where: { recipientId: firstSigner?.id },
+  });
+
+  await page.locator(`#field-${firstSignerField.id}`).getByRole('button').click();
+
+  await page.getByRole('button', { name: 'Complete' }).click();
+  await page.getByRole('button', { name: 'Sign' }).click();
+  await page.waitForURL(`/sign/${firstSigner?.token}/complete`);
+
+  // The CC recipient at order 2 must not block the last signer at order 3.
+  await page.goto(`/sign/${lastSigner?.token}`);
+  await expect(page).not.toHaveURL(`/sign/${lastSigner?.token}/waiting`);
+  await expect(page.getByRole('heading', { name: 'Sign Document' })).toBeVisible();
+
+  await signSignaturePad(page);
+
+  const lastSignerField = await prisma.field.findFirstOrThrow({
+    where: { recipientId: lastSigner?.id },
+  });
+
+  await page.locator(`#field-${lastSignerField.id}`).getByRole('button').click();
+
+  await page.getByRole('button', { name: 'Complete' }).click();
+  await page.getByRole('button', { name: 'Sign' }).click();
+  await page.waitForURL(`/sign/${lastSigner?.token}/complete`);
+
+  // The document completes without any action from the CC recipient.
+  await expect
+    .poll(
+      async () => {
+        const finalDocument = await prisma.envelope.findFirstOrThrow({
+          where: { id: document.id },
+        });
+
+        return finalDocument.status;
+      },
+      { timeout: 30_000 },
+    )
+    .toBe(DocumentStatus.COMPLETED);
+});
+
+test('[DOCUMENT_FLOW]: should skip unsigned CC recipients in sequential signing order', async ({ page }) => {
+  const { user, team } = await seedUser();
+
+  const { document, recipients } = await seedPendingDocumentWithFullFields({
+    teamId: team.id,
+    owner: user,
+    recipients: ['signer1@example.com', 'cc@example.com', 'signer2@example.com'],
+    fields: [FieldType.SIGNATURE],
+    recipientsCreateOptions: [
+      { signingOrder: 1 },
+      {
+        // Legacy/inconsistent data: a CC recipient that was never marked as signed.
+        signingOrder: 2,
+        role: RecipientRole.CC,
+        signingStatus: SigningStatus.NOT_SIGNED,
+      },
+      { signingOrder: 3 },
+    ],
+  });
+
+  await prisma.documentMeta.update({
+    where: {
+      id: document.documentMetaId,
+    },
+    data: {
+      signingOrder: DocumentSigningOrder.SEQUENTIAL,
+    },
+  });
+
+  const firstSigner = recipients.find((r) => r.email === 'signer1@example.com');
+  const ccRecipient = recipients.find((r) => r.email === 'cc@example.com');
+  const lastSigner = recipients.find((r) => r.email === 'signer2@example.com');
+
+  // CC recipients cannot have fields.
+  await prisma.field.deleteMany({
+    where: {
+      recipientId: ccRecipient?.id,
+    },
+  });
+
+  // Sign as the first signer.
+  await page.goto(`/sign/${firstSigner?.token}`);
+  await expect(page.getByRole('heading', { name: 'Sign Document' })).toBeVisible();
+  await signSignaturePad(page);
+
+  const firstSignerField = await prisma.field.findFirstOrThrow({
+    where: { recipientId: firstSigner?.id },
+  });
+
+  await page.locator(`#field-${firstSignerField.id}`).getByRole('button').click();
+
+  await page.getByRole('button', { name: 'Complete' }).click();
+  await page.getByRole('button', { name: 'Sign' }).click();
+  await page.waitForURL(`/sign/${firstSigner?.token}/complete`);
+
+  // The unsigned CC recipient at order 2 must not block the last signer at order 3.
+  await page.goto(`/sign/${lastSigner?.token}`);
+  await expect(page).not.toHaveURL(`/sign/${lastSigner?.token}/waiting`);
+  await expect(page.getByRole('heading', { name: 'Sign Document' })).toBeVisible();
+
+  await signSignaturePad(page);
+
+  const lastSignerField = await prisma.field.findFirstOrThrow({
+    where: { recipientId: lastSigner?.id },
+  });
+
+  await page.locator(`#field-${lastSignerField.id}`).getByRole('button').click();
+
+  await page.getByRole('button', { name: 'Complete' }).click();
+  await page.getByRole('button', { name: 'Sign' }).click();
+  await page.waitForURL(`/sign/${lastSigner?.token}/complete`);
+
+  // The document completes without any action from the CC recipient.
+  await expect
+    .poll(
+      async () => {
+        const finalDocument = await prisma.envelope.findFirstOrThrow({
+          where: { id: document.id },
+        });
+
+        return finalDocument.status;
+      },
+      { timeout: 30_000 },
+    )
+    .toBe(DocumentStatus.COMPLETED);
 });

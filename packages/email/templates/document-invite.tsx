@@ -1,24 +1,33 @@
+import { RECIPIENT_ROLES_DESCRIPTION } from '@documenso/lib/constants/recipient-roles';
 import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react';
 import { Trans } from '@lingui/react/macro';
 import type { RecipientRole } from '@prisma/client';
+import { OrganisationType } from '@prisma/client';
 
-import { RECIPIENT_ROLES_DESCRIPTION } from '@documenso/lib/constants/recipient-roles';
-
-import { Body, Container, Head, Hr, Html, Img, Link, Preview, Section, Text } from '../components';
-import { useBranding } from '../providers/branding';
+import { Body, Container, Head, Hr, Html, Link, Preview, Section, Text } from '../components';
+import { TemplateBrandingLogo } from '../template-components/template-branding-logo';
+import { TemplateCustomMessageBody } from '../template-components/template-custom-message-body';
 import type { TemplateDocumentInviteProps } from '../template-components/template-document-invite';
 import { TemplateDocumentInvite } from '../template-components/template-document-invite';
 import { TemplateFooter } from '../template-components/template-footer';
+import { TemplateNewAccountWarning } from '../template-components/template-new-account-warning';
 
 export type DocumentInviteEmailTemplateProps = Partial<TemplateDocumentInviteProps> & {
   customBody?: string;
   role: RecipientRole;
   selfSigner?: boolean;
-  isTeamInvite?: boolean;
   teamName?: string;
   teamEmail?: string;
   includeSenderDetails?: boolean;
+  organisationType?: OrganisationType;
+  reportUrl?: string;
+
+  /**
+   * The user's own email, not a team email, so the recipient can verify who
+   * actually contacted them.
+   */
+  newAccountWarningSenderEmail?: string;
 };
 
 export const DocumentInviteEmailTemplate = ({
@@ -30,18 +39,19 @@ export const DocumentInviteEmailTemplate = ({
   customBody,
   role,
   selfSigner = false,
-  isTeamInvite = false,
   teamName = '',
   includeSenderDetails,
+  organisationType,
+  reportUrl,
+  newAccountWarningSenderEmail,
 }: DocumentInviteEmailTemplateProps) => {
   const { _ } = useLingui();
-  const branding = useBranding();
 
   const action = _(RECIPIENT_ROLES_DESCRIPTION[role].actionVerb).toLowerCase();
 
   let previewText = msg`${inviterName} has invited you to ${action} ${documentName}`;
 
-  if (isTeamInvite) {
+  if (organisationType === OrganisationType.ORGANISATION) {
     previewText = includeSenderDetails
       ? msg`${inviterName} on behalf of "${teamName}" has invited you to ${action} ${documentName}`
       : msg`${teamName} has invited you to ${action} ${documentName}`;
@@ -51,28 +61,21 @@ export const DocumentInviteEmailTemplate = ({
     previewText = msg`Please ${action} your document ${documentName}`;
   }
 
-  const getAssetUrl = (path: string) => {
-    return new URL(path, assetBaseUrl).toString();
-  };
-
   return (
     <Html>
       <Head />
-      <Preview>{_(previewText)}</Preview>
 
-      <Body className="mx-auto my-auto bg-white font-sans">
+      <Body className="mx-auto my-auto bg-background font-sans">
+        <Preview>{_(previewText)}</Preview>
+
         <Section>
-          <Container className="mx-auto mb-2 mt-8 max-w-xl rounded-lg border border-solid border-slate-200 p-4 backdrop-blur-sm">
+          {newAccountWarningSenderEmail && (
+            <TemplateNewAccountWarning senderEmail={newAccountWarningSenderEmail} reportUrl={reportUrl} />
+          )}
+
+          <Container className="mx-auto mt-8 mb-2 max-w-xl rounded-lg border border-border border-solid p-4 backdrop-blur-sm">
             <Section>
-              {branding.brandingEnabled && branding.brandingLogo ? (
-                <Img src={branding.brandingLogo} alt="Branding Logo" className="mb-4 h-6" />
-              ) : (
-                <Img
-                  src={getAssetUrl('/static/logo.png')}
-                  alt="Documenso Logo"
-                  className="mb-4 h-6"
-                />
-              )}
+              <TemplateBrandingLogo assetBaseUrl={assetBaseUrl} className="mb-4 h-6" />
 
               <TemplateDocumentInvite
                 inviterName={inviterName}
@@ -82,7 +85,7 @@ export const DocumentInviteEmailTemplate = ({
                 assetBaseUrl={assetBaseUrl}
                 role={role}
                 selfSigner={selfSigner}
-                isTeamInvite={isTeamInvite}
+                organisationType={organisationType}
                 teamName={teamName}
                 includeSenderDetails={includeSenderDetails}
               />
@@ -91,20 +94,20 @@ export const DocumentInviteEmailTemplate = ({
 
           <Container className="mx-auto mt-12 max-w-xl">
             <Section>
-              {!isTeamInvite && (
-                <Text className="my-4 text-base font-semibold">
+              {organisationType === OrganisationType.PERSONAL && (
+                <Text className="my-4 font-semibold text-base">
                   <Trans>
                     {inviterName}{' '}
-                    <Link className="font-normal text-slate-400" href="mailto:{inviterEmail}">
+                    <Link className="font-normal text-muted-foreground" href={`mailto:${inviterEmail}`}>
                       ({inviterEmail})
                     </Link>
                   </Trans>
                 </Text>
               )}
 
-              <Text className="mt-2 text-base text-slate-400">
+              <Text className="mt-2 text-base text-muted-foreground">
                 {customBody ? (
-                  <pre className="font-sans text-base text-slate-400">{customBody}</pre>
+                  <TemplateCustomMessageBody text={customBody} />
                 ) : (
                   <Trans>
                     {inviterName} has invited you to {action} the document "{documentName}".
@@ -117,7 +120,7 @@ export const DocumentInviteEmailTemplate = ({
           <Hr className="mx-auto mt-12 max-w-xl" />
 
           <Container className="mx-auto max-w-xl">
-            <TemplateFooter />
+            <TemplateFooter reportUrl={reportUrl} />
           </Container>
         </Section>
       </Body>

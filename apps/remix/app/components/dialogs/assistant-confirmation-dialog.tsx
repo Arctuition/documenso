@@ -1,8 +1,4 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Trans } from '@lingui/react/macro';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-
+import { zEmail } from '@documenso/lib/utils/zod';
 import { Button } from '@documenso/ui/primitives/button';
 import {
   Dialog,
@@ -12,15 +8,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@documenso/ui/primitives/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@documenso/ui/primitives/form/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@documenso/ui/primitives/form/form';
 import { Input } from '@documenso/ui/primitives/input';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Trans, useLingui } from '@lingui/react/macro';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 
 import { DocumentSigningDisclosure } from '../general/document-signing/document-signing-disclosure';
 
@@ -41,7 +35,7 @@ type ConfirmationDialogProps = {
 
 const ZNextSignerFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  email: z.string().email('Invalid email address'),
+  email: zEmail('Invalid email address'),
 });
 
 type TNextSignerFormSchema = z.infer<typeof ZNextSignerFormSchema>;
@@ -55,6 +49,9 @@ export function AssistantConfirmationDialog({
   allowDictateNextSigner = false,
   defaultNextSigner,
 }: ConfirmationDialogProps) {
+  const { t } = useLingui();
+  const [isEditingNextSigner, setIsEditingNextSigner] = useState(false);
+
   const form = useForm<TNextSignerFormSchema>({
     resolver: zodResolver(ZNextSignerFormSchema),
     defaultValues: {
@@ -98,62 +95,78 @@ export function AssistantConfirmationDialog({
                 </DialogTitle>
                 <DialogDescription>
                   <Trans>
-                    Are you sure you want to complete the document? This action cannot be undone.
-                    Please ensure that you have completed prefilling all relevant fields before
-                    proceeding.
+                    Are you sure you want to complete the document? This action cannot be undone. Please ensure that you
+                    have completed prefilling all relevant fields before proceeding.
                   </Trans>
                 </DialogDescription>
               </DialogHeader>
 
               <div className="mt-4 flex flex-col gap-4">
                 {allowDictateNextSigner && (
-                  <div className="my-2">
-                    <p className="text-muted-foreground mb-1 text-sm font-semibold">
-                      The next recipient to sign this document will be{' '}
-                    </p>
+                  <div className="mt-4 flex flex-col gap-4">
+                    {!isEditingNextSigner && (
+                      <div>
+                        <p className="text-muted-foreground text-sm">
+                          <Trans>
+                            The next recipient to sign this document will be{' '}
+                            <span className="font-semibold">{form.watch('name')}</span> (
+                            <span className="font-semibold">{form.watch('email')}</span>).
+                          </Trans>
+                        </p>
 
-                    <div className="flex flex-col gap-4 rounded-xl border p-4 md:flex-row">
-                      <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem className="flex-1">
-                            <FormLabel>
-                              <Trans>Name</Trans>
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                className="mt-2"
-                                placeholder="Enter the next signer's name"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                        <Button
+                          type="button"
+                          className="mt-2"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsEditingNextSigner((prev) => !prev)}
+                        >
+                          <Trans>Update Recipient</Trans>
+                        </Button>
+                      </div>
+                    )}
 
-                      <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem className="flex-1">
-                            <FormLabel>
-                              <Trans>Email</Trans>
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                type="email"
-                                className="mt-2"
-                                placeholder="Enter the next signer's email"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                    {isEditingNextSigner && (
+                      <div className="flex flex-col gap-4 md:flex-row">
+                        <FormField
+                          control={form.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem className="flex-1">
+                              <FormLabel>
+                                <Trans>Name</Trans>
+                              </FormLabel>
+                              <FormControl>
+                                <Input {...field} className="mt-2" placeholder={t`Enter the next signer's name`} />
+                              </FormControl>
+
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem className="flex-1">
+                              <FormLabel>
+                                <Trans>Email</Trans>
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  type="email"
+                                  className="mt-2"
+                                  placeholder={t`Enter the next signer's email`}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 

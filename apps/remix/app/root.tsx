@@ -1,58 +1,38 @@
+import { getOptionalSession } from '@documenso/auth/server/lib/utils/get-session';
+import { useAnalytics } from '@documenso/lib/client-only/hooks/use-analytics';
+import { SessionProvider } from '@documenso/lib/client-only/providers/session';
+import { getBasePath } from '@documenso/lib/constants/app';
+import { createPublicEnv } from '@documenso/lib/utils/env';
+import { TrpcProvider } from '@documenso/trpc/react';
+import { getOrganisationSession } from '@documenso/trpc/server/organisation-router/get-organisation-session';
+import { Toaster } from '@documenso/ui/primitives/toaster';
+import { TooltipProvider } from '@documenso/ui/primitives/tooltip';
+import { NuqsAdapter } from 'nuqs/adapters/react-router/v7';
 import { useEffect } from 'react';
-
-import Plausible from 'plausible-tracker';
 import {
+  data,
+  isRouteErrorResponse,
   Links,
   Meta,
   Outlet,
   Scripts,
   ScrollRestoration,
-  data,
-  isRouteErrorResponse,
   useLoaderData,
-  useLocation,
+  useMatches,
 } from 'react-router';
-import { Theme } from 'remix-themes';
-import { PreventFlashOnWrongTheme, ThemeProvider, useTheme } from 'remix-themes';
-
-import { getOptionalSession } from '@documenso/auth/server/lib/utils/get-session';
-import { SessionProvider } from '@documenso/lib/client-only/providers/session';
-import { type TGetTeamsResponse, getTeams } from '@documenso/lib/server-only/team/get-teams';
-import { createPublicEnv, env } from '@documenso/lib/utils/env';
-import { TrpcProvider } from '@documenso/trpc/react';
-import { Toaster } from '@documenso/ui/primitives/toaster';
-import { TooltipProvider } from '@documenso/ui/primitives/tooltip';
-
+import { PreventFlashOnWrongTheme, Theme, ThemeProvider, useTheme } from 'remix-themes';
+import { nonceMiddleware } from '~/middleware/nonce';
 import type { Route } from './+types/root';
 import stylesheet from './app.css?url';
 import { GenericErrorLayout } from './components/general/generic-error-layout';
 import { langCookie } from './storage/lang-cookie.server';
-// import { themeSessionResolver } from './storage/theme-session.server';
 import { getRequestLanguage } from './utils/get-request-language.server';
 import { appMetaTags } from './utils/meta';
+import { nonce, nonceContext } from './utils/nonce';
 
-const { trackPageview } = Plausible({
-  domain: 'documenso.com',
-  trackLocalhost: false,
-});
+export const middleware = [nonceMiddleware];
 
-export const links: Route.LinksFunction = () => [
-  { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-  {
-    rel: 'preconnect',
-    href: 'https://fonts.gstatic.com',
-    crossOrigin: 'anonymous',
-  },
-  {
-    rel: 'stylesheet',
-    href: 'https://fonts.googleapis.com/css2?family=Caveat:wght@400..600&display=swap',
-  },
-  {
-    rel: 'stylesheet',
-    href: 'https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap',
-  },
-  { rel: 'stylesheet', href: stylesheet },
-];
+export const links: Route.LinksFunction = () => [{ rel: 'stylesheet', href: stylesheet }];
 
 export function meta() {
   return appMetaTags();
@@ -65,105 +45,150 @@ export function meta() {
  */
 export const shouldRevalidate = () => false;
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ context, request }: Route.LoaderArgs) {
   const session = await getOptionalSession(request);
 
-  let teams: TGetTeamsResponse = [];
-
-  if (session.isAuthenticated) {
-    teams = await getTeams({ userId: session.user.id });
-  }
-
-  // const { getTheme } = await themeSessionResolver(request);
+  const cookieHeader = request.headers.get('cookie') ?? '';
 
   const lang = await getRequestLanguage(request);
-  // const theme = getTheme();
 
-  const urlLang = new URL(request.url).searchParams.get('lang');
-  const headers: Record<string, string> = {};
+  // ArcSite: a `?lang=` override only applies to that link, so don't persist it.
+  const hasUrlLang = new URL(request.url).searchParams.has('lang');
 
-  if (!urlLang) {
-    headers['Set-Cookie'] = await langCookie.serialize(lang);
+  const disableAnimations = cookieHeader.includes('__disable_animations=true');
+
+  let organisations = null;
+
+  if (session.isAuthenticated) {
+    organisations = await getOrganisationSession({ userId: session.user.id });
   }
 
   return data(
     {
       lang,
-      // theme: getTheme(),
+      // ArcSite: always light theme.
       theme: Theme.LIGHT,
+      disableAnimations,
+      basePath: getBasePath(),
+      // Surface the per-request CSP nonce produced by `securityHeadersMiddleware` so all
+      // SSR-rendered <script>/<style> elements in this layout (and child
+      // routes that need it) can carry the matching nonce attribute.
+      nonce: context.get(nonceContext),
       session: session.isAuthenticated
         ? {
             user: session.user,
             session: session.session,
-            teams,
+            organisations: organisations || [],
           }
         : null,
       publicEnv: createPublicEnv(),
     },
-    { headers },
+    {
+      headers: hasUrlLang ? {} : { 'Set-Cookie': await langCookie.serialize(lang) },
+    },
   );
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const { theme } = useLoaderData<typeof loader>() || {};
-
-  const location = useLocation();
-
-  useEffect(() => {
-    if (env('NODE_ENV') === 'production') {
-      trackPageview();
-    }
-  }, [location.pathname]);
+  const { theme, basePath } = useLoaderData<typeof loader>() || {};
 
   return (
-    <ThemeProvider specifiedTheme={theme} themeAction="/api/theme">
+    <ThemeProvider specifiedTheme={theme} themeAction={`${basePath ?? ''}/api/theme`}>
       <LayoutContent>{children}</LayoutContent>
     </ThemeProvider>
   );
 }
 
 export function LayoutContent({ children }: { children: React.ReactNode }) {
-  const { publicEnv, session, lang, ...data } = useLoaderData<typeof loader>() || {};
+  const {
+    publicEnv,
+    session,
+    lang,
+    disableAnimations,
+    nonce: cspNonce,
+    ...data
+  } = useLoaderData<typeof loader>() || {};
 
   const [theme] = useTheme();
 
+  const basePath = data.basePath ?? '';
+
+  // Recipient routes (signing pages) put `documenso-branded` on <body> so the
+  // <style> block from `RecipientBranding` applies to BOTH the main tree and
+  // any portaled content (Radix dialogs/popovers/dropdowns mount outside the
+  // route tree, attached directly to document.body).
+  const matches = useMatches();
+  const isRecipientRoute = matches.some((m) => m.id?.startsWith('routes/_recipient+'));
+
   return (
-    <html translate="no" lang={lang} data-theme={theme} className={theme ?? ''}>
+    // `suppressHydrationWarning` because `remix-themes` intentionally mutates
+    // `data-theme`/`class` on <html> before hydration (PreventFlashOnWrongTheme),
+    // so the server-rendered attributes never match the client render when the
+    // theme is resolved from the system preference. Attribute-only, one level deep.
+    <html translate="no" lang={lang} data-theme={theme} className={theme ?? ''} suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href={`${basePath}/apple-touch-icon.png`} />
+        <link rel="icon" type="image/png" sizes="32x32" href={`${basePath}/favicon-32x32.png`} />
+        <link rel="icon" type="image/png" sizes="16x16" href={`${basePath}/favicon-16x16.png`} />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="manifest" href="/site.webmanifest" />
+        <link rel="manifest" href={`${basePath}/site.webmanifest`} />
         <meta name="google" content="notranslate" />
         <Meta />
-        <Links />
+        <Links nonce={nonce(cspNonce)} />
         <meta name="google" content="notranslate" />
-        <PreventFlashOnWrongTheme ssrTheme={Boolean(data.theme)} />
+        <PreventFlashOnWrongTheme ssrTheme={Boolean(data.theme)} nonce={nonce(cspNonce)} />
+
+        {disableAnimations && (
+          <style
+            nonce={nonce(cspNonce)}
+            dangerouslySetInnerHTML={{
+              __html: `*, *::before, *::after { animation: none !important; transition-duration: 0.001s !important; transition-delay: 0s !important; }`,
+            }}
+          />
+        )}
 
         {/* Fix: https://stackoverflow.com/questions/21147149/flash-of-unstyled-content-fouc-in-firefox-only-is-ff-slow-renderer */}
-        <script>0</script>
+        <script nonce={nonce(cspNonce)}>0</script>
       </head>
-      <body>
-        <SessionProvider initialSession={session}>
-          <TooltipProvider>
-            <TrpcProvider>
-              {children}
+      <body className={isRecipientRoute ? 'documenso-branded' : undefined}>
+        {/* Global license banner currently disabled. Need to wait until after a few releases. */}
+        {/* {licenseStatus === '?' && (
+          <div className="bg-destructive text-destructive-foreground">
+            <div className="mx-auto flex h-auto max-w-screen-xl items-center justify-center px-4 py-3 text-sm font-medium">
+              <div className="flex items-center">
+                <AlertTriangleIcon className="mr-2 h-4 w-4" />
+                <Trans>This is an expired license instance of Documenso</Trans>
+              </div>
+            </div>
+          </div>
+        )} */}
 
-              <Toaster />
-            </TrpcProvider>
-          </TooltipProvider>
-        </SessionProvider>
+        <NuqsAdapter>
+          <SessionProvider initialSession={session}>
+            <TooltipProvider>
+              <TrpcProvider>
+                {children}
 
-        <ScrollRestoration />
-        <Scripts />
+                <Toaster />
+              </TrpcProvider>
+            </TooltipProvider>
+          </SessionProvider>
+        </NuqsAdapter>
 
         <script
+          nonce={nonce(cspNonce)}
           dangerouslySetInnerHTML={{
-            __html: `window.__ENV__ = ${JSON.stringify(publicEnv)}`,
+            // `__webpack_nonce__` is read by `get-nonce` (used by
+            // react-remove-scroll / react-style-singleton inside Radix menus and
+            // dialogs) to stamp runtime-injected <style> elements. Without it the
+            // strict `style-src-elem` CSP blocks the scroll-lock styles.
+            __html: `window.__ENV__ = ${JSON.stringify(publicEnv)}; window.__webpack_nonce__ = ${JSON.stringify(cspNonce ?? '')}`,
           }}
         />
+
+        <ScrollRestoration nonce={nonce(cspNonce)} />
+        <Scripts nonce={nonce(cspNonce)} />
       </body>
     </html>
   );
@@ -174,11 +199,19 @@ export default function App() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  const analytics = useAnalytics();
+
   const errorCode = isRouteErrorResponse(error) ? error.status : 500;
 
   if (errorCode !== 404) {
     console.error('[RootErrorBoundary]', error);
   }
+
+  useEffect(() => {
+    if (errorCode !== 404) {
+      analytics.captureException(error, { source: 'app', location: 'root_boundary' });
+    }
+  }, [error]);
 
   return <GenericErrorLayout errorCode={errorCode} />;
 }

@@ -1,11 +1,13 @@
-import { FieldType, RecipientRole, SigningStatus } from '@prisma/client';
-
 import { prisma } from '@documenso/prisma';
+import { EnvelopeType, FieldType, RecipientRole, SigningStatus } from '@prisma/client';
+
+import { getLaterSigningStepRecipientsWhereInput } from '../../utils/recipient-queries';
 
 export type GetFieldsForTokenOptions = {
   token: string;
 };
 
+// Note: You many need to filter this on a per envelope item ID basis.
 export const getFieldsForToken = async ({ token }: GetFieldsForTokenOptions) => {
   if (!token) {
     throw new Error('Missing token');
@@ -31,11 +33,13 @@ export const getFieldsForToken = async ({ token }: GetFieldsForTokenOptions) => 
               signingStatus: {
                 not: SigningStatus.SIGNED,
               },
-              signingOrder: {
-                gte: recipient.signingOrder ?? 0,
-              },
+              envelopeId: recipient.envelopeId,
+              AND: [getLaterSigningStepRecipientsWhereInput(recipient)],
             },
-            documentId: recipient.documentId,
+            envelope: {
+              id: recipient.envelopeId,
+              type: EnvelopeType.DOCUMENT,
+            },
           },
           {
             recipientId: recipient.id,

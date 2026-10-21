@@ -1,14 +1,8 @@
-import { useLayoutEffect, useRef, useState } from 'react';
-
-import { msg } from '@lingui/core/macro';
-import { useLingui } from '@lingui/react';
-import { Trans } from '@lingui/react/macro';
-import { Loader } from 'lucide-react';
-import { useRevalidator } from 'react-router';
-
+import { useAnalytics } from '@documenso/lib/client-only/hooks/use-analytics';
 import { DO_NOT_INVALIDATE_QUERY_ON_MUTATION } from '@documenso/lib/constants/trpc';
 import { AppError, AppErrorCode } from '@documenso/lib/errors/app-error';
 import type { TRecipientActionAuth } from '@documenso/lib/types/document-auth';
+import { ZInitialsFieldMeta } from '@documenso/lib/types/field-meta';
 import { extractInitials } from '@documenso/lib/utils/recipient-formatter';
 import type { FieldWithSignature } from '@documenso/prisma/types/field-with-signature';
 import { trpc } from '@documenso/trpc/react';
@@ -17,8 +11,14 @@ import type {
   TSignFieldWithTokenMutationSchema,
 } from '@documenso/trpc/server/field-router/schema';
 import { useToast } from '@documenso/ui/primitives/use-toast';
+import { msg } from '@lingui/core/macro';
+import { useLingui } from '@lingui/react';
+import { Trans } from '@lingui/react/macro';
+import { useRevalidator } from 'react-router';
 
 import { DocumentSigningFieldContainer } from './document-signing-field-container';
+import { DocumentSigningFieldsInserted, DocumentSigningFieldsLoader } from './document-signing-fields';
+import { DocumentSigningFitText } from './document-signing-fit-text';
 import { useRequiredDocumentSigningContext } from './document-signing-provider';
 import { useDocumentSigningRecipientContext } from './document-signing-recipient-provider';
 
@@ -26,63 +26,6 @@ export type DocumentSigningInitialsFieldProps = {
   field: FieldWithSignature;
   onSignField?: (value: TSignFieldWithTokenMutationSchema) => Promise<void> | void;
   onUnsignField?: (value: TRemovedSignedFieldWithTokenMutationSchema) => Promise<void> | void;
-};
-
-const InitialsTextWithResponsiveFontSize = () => {
-  const [fontSize, setFontSize] = useState(0.625); // Default to mid-size between 0.425rem and 0.825rem
-  const textRef = useRef<HTMLSpanElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useLayoutEffect(() => {
-    if (!textRef.current || !containerRef.current) {
-      return;
-    }
-
-    const adjustTextSize = () => {
-      const container = containerRef.current;
-      const text = textRef.current;
-
-      if (!container || !text) {
-        return;
-      }
-
-      let size = 0.625; // Start with a reasonable size
-      text.style.fontSize = `${size}rem`;
-
-      // Reduce font size until text fits the container
-      while (
-        (text.scrollWidth > container.clientWidth || text.scrollHeight > container.clientHeight) &&
-        size > 0.2
-      ) {
-        size -= 0.05;
-        text.style.fontSize = `${size}rem`;
-      }
-
-      setFontSize(size);
-    };
-
-    const resizeObserver = new ResizeObserver(adjustTextSize);
-    resizeObserver.observe(containerRef.current);
-
-    adjustTextSize();
-
-    return () => resizeObserver.disconnect();
-  }, []);
-
-  return (
-    <div
-      ref={containerRef}
-      className="flex h-full w-full items-center justify-center overflow-hidden"
-    >
-      <span
-        ref={textRef}
-        style={{ fontSize: `${fontSize}rem` }}
-        className="text-muted-foreground group-hover:text-primary whitespace-nowrap duration-200 group-hover:text-yellow-300"
-      >
-        <Trans>Initials</Trans>
-      </span>
-    </div>
-  );
 };
 
 export const DocumentSigningInitialsField = ({
@@ -93,6 +36,7 @@ export const DocumentSigningInitialsField = ({
   const { toast } = useToast();
   const { _ } = useLingui();
   const { revalidate } = useRevalidator();
+  const analytics = useAnalytics();
 
   const { fullName } = useRequiredDocumentSigningContext();
   const { recipient, isAssistantMode } = useDocumentSigningRecipientContext();
@@ -102,12 +46,13 @@ export const DocumentSigningInitialsField = ({
   const { mutateAsync: signFieldWithToken, isPending: isSignFieldWithTokenLoading } =
     trpc.field.signFieldWithToken.useMutation(DO_NOT_INVALIDATE_QUERY_ON_MUTATION);
 
-  const {
-    mutateAsync: removeSignedFieldWithToken,
-    isPending: isRemoveSignedFieldWithTokenLoading,
-  } = trpc.field.removeSignedFieldWithToken.useMutation(DO_NOT_INVALIDATE_QUERY_ON_MUTATION);
+  const { mutateAsync: removeSignedFieldWithToken, isPending: isRemoveSignedFieldWithTokenLoading } =
+    trpc.field.removeSignedFieldWithToken.useMutation(DO_NOT_INVALIDATE_QUERY_ON_MUTATION);
 
   const isLoading = isSignFieldWithTokenLoading || isRemoveSignedFieldWithTokenLoading;
+
+  const safeFieldMeta = ZInitialsFieldMeta.safeParse(field.fieldMeta);
+  const parsedFieldMeta = safeFieldMeta.success ? safeFieldMeta.data : null;
 
   const onSign = async (authOptions?: TRecipientActionAuth) => {
     try {
@@ -138,6 +83,13 @@ export const DocumentSigningInitialsField = ({
 
       console.error(err);
 
+      analytics.captureException(err, {
+        source: 'signing',
+        location: 'sign_field',
+        fieldType: field.type,
+        recipientId: field.recipientId,
+      });
+
       toast({
         title: _(msg`Error`),
         description: isAssistantMode
@@ -166,6 +118,13 @@ export const DocumentSigningInitialsField = ({
     } catch (err) {
       console.error(err);
 
+      analytics.captureException(err, {
+        source: 'signing',
+        location: 'remove_field',
+        fieldType: field.type,
+        recipientId: field.recipientId,
+      });
+
       toast({
         title: _(msg`Error`),
         description: _(msg`An error occurred while removing the field.`),
@@ -175,24 +134,22 @@ export const DocumentSigningInitialsField = ({
   };
 
   return (
-    <DocumentSigningFieldContainer
-      field={field}
-      onSign={onSign}
-      onRemove={onRemove}
-      type="Initials"
-    >
-      {isLoading && (
-        <div className="bg-background absolute inset-0 flex items-center justify-center rounded-md">
-          <Loader className="text-primary h-5 w-5 animate-spin md:h-8 md:w-8" />
-        </div>
+    <DocumentSigningFieldContainer field={field} onSign={onSign} onRemove={onRemove} type="Initials">
+      {isLoading && <DocumentSigningFieldsLoader />}
+
+      {!field.inserted && (
+        <DocumentSigningFitText
+          maxFontSize={0.625}
+          className="whitespace-nowrap text-foreground duration-200 group-hover:text-recipient-green"
+        >
+          <Trans>Initials</Trans>
+        </DocumentSigningFitText>
       )}
 
-      {!field.inserted && <InitialsTextWithResponsiveFontSize />}
-
       {field.inserted && (
-        <p className="text-muted-foreground dark:text-background/80 text-[clamp(0.425rem,25cqw,0.825rem)] duration-200">
+        <DocumentSigningFieldsInserted textAlign={parsedFieldMeta?.textAlign}>
           {field.customText}
-        </p>
+        </DocumentSigningFieldsInserted>
       )}
     </DocumentSigningFieldContainer>
   );

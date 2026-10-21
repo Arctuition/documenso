@@ -1,14 +1,10 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { msg } from '@lingui/core/macro';
-import { useLingui } from '@lingui/react';
-import { Trans } from '@lingui/react/macro';
-import type { Recipient } from '@prisma/client';
-import type { Field } from '@prisma/client';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-
 import { useOptionalSession } from '@documenso/lib/client-only/providers/session';
 import type { TTemplate } from '@documenso/lib/types/template';
+import { zEmail } from '@documenso/lib/utils/zod';
+import {
+  DocumentReadOnlyFields,
+  mapFieldsWithRecipients,
+} from '@documenso/ui/components/document/document-read-only-fields';
 import {
   DocumentFlowFormContainerActions,
   DocumentFlowFormContainerContent,
@@ -16,23 +12,20 @@ import {
   DocumentFlowFormContainerHeader,
   DocumentFlowFormContainerStep,
 } from '@documenso/ui/primitives/document-flow/document-flow-root';
-import { ShowFieldItem } from '@documenso/ui/primitives/document-flow/show-field-item';
 import type { DocumentFlowStep } from '@documenso/ui/primitives/document-flow/types';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@documenso/ui/primitives/form/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@documenso/ui/primitives/form/form';
 import { Input } from '@documenso/ui/primitives/input';
 import { useStep } from '@documenso/ui/primitives/stepper';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Trans } from '@lingui/react/macro';
+import type { Field, Recipient } from '@prisma/client';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 
 import { useRequiredDocumentSigningAuthContext } from '~/components/general/document-signing/document-signing-auth-provider';
 
 const ZDirectTemplateConfigureFormSchema = z.object({
-  email: z.string().email('Email is invalid'),
+  email: zEmail('Email is invalid'),
 });
 
 export type TDirectTemplateConfigureFormSchema = z.infer<typeof ZDirectTemplateConfigureFormSchema>;
@@ -54,8 +47,6 @@ export const DirectTemplateConfigureForm = ({
   initialEmail,
   onSubmit,
 }: DirectTemplateConfigureFormProps) => {
-  const { _ } = useLingui();
-
   const { sessionData } = useOptionalSession();
   const user = sessionData?.user;
 
@@ -74,17 +65,7 @@ export const DirectTemplateConfigureForm = ({
   });
 
   const form = useForm<TDirectTemplateConfigureFormSchema>({
-    resolver: zodResolver(
-      ZDirectTemplateConfigureFormSchema.superRefine((items, ctx) => {
-        if (template.recipients.map((recipient) => recipient.email).includes(items.email)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: _(msg`Email cannot already exist in the template`),
-            path: ['email'],
-          });
-        }
-      }),
-    ),
+    resolver: zodResolver(ZDirectTemplateConfigureFormSchema),
     defaultValues: {
       email: initialEmail || '',
     },
@@ -97,20 +78,16 @@ export const DirectTemplateConfigureForm = ({
       <DocumentFlowFormContainerHeader title={flowStep.title} description={flowStep.description} />
 
       <DocumentFlowFormContainerContent>
-        {isDocumentPdfLoaded &&
-          directTemplateRecipient.fields.map((field, index) => (
-            <ShowFieldItem
-              key={index}
-              field={field}
-              recipients={recipientsWithBlankDirectRecipientEmail}
-            />
-          ))}
+        {isDocumentPdfLoaded && (
+          <DocumentReadOnlyFields
+            fields={mapFieldsWithRecipients(directTemplateRecipient.fields, recipientsWithBlankDirectRecipientEmail)}
+            recipientIds={recipients.map((recipient) => recipient.id)}
+            showRecipientColors={true}
+          />
+        )}
 
         <Form {...form}>
-          <fieldset
-            className="flex h-full flex-col space-y-6"
-            disabled={form.formState.isSubmitting}
-          >
+          <fieldset className="flex h-full flex-col space-y-6" disabled={form.formState.isSubmitting}>
             <FormField
               control={form.control}
               name="email"
@@ -123,11 +100,7 @@ export const DirectTemplateConfigureForm = ({
                   <FormControl>
                     <Input
                       {...field}
-                      disabled={
-                        field.disabled ||
-                        derivedRecipientAccessAuth !== null ||
-                        user?.email !== undefined
-                      }
+                      disabled={field.disabled || derivedRecipientAccessAuth.length > 0 || user?.email !== undefined}
                       placeholder="recipient@documenso.com"
                     />
                   </FormControl>

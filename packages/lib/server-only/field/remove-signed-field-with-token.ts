@@ -1,9 +1,11 @@
-import { DocumentStatus, RecipientRole, SigningStatus } from '@prisma/client';
-
+import { assertSenderNotDisabled } from '@documenso/lib/server-only/user/assert-user-not-disabled';
 import { DOCUMENT_AUDIT_LOG_TYPE } from '@documenso/lib/types/document-audit-logs';
 import type { RequestMetadata } from '@documenso/lib/universal/extract-request-metadata';
 import { createDocumentAuditLogData } from '@documenso/lib/utils/document-audit-logs';
+import { getRecipientFieldsWhereInput } from '@documenso/lib/utils/recipient-queries';
+import { assertRecipientNotExpired } from '@documenso/lib/utils/recipients';
 import { prisma } from '@documenso/prisma';
+import { DocumentStatus, RecipientRole, SigningStatus } from '@prisma/client';
 
 export type RemovedSignedFieldWithTokenOptions = {
   token: string;
@@ -25,41 +27,32 @@ export const removeSignedFieldWithToken = async ({
   const field = await prisma.field.findFirstOrThrow({
     where: {
       id: fieldId,
-      recipient: {
-        ...(recipient.role !== RecipientRole.ASSISTANT
-          ? {
-              id: recipient.id,
-            }
-          : {
-              signingOrder: {
-                gte: recipient.signingOrder ?? 0,
-              },
-              signingStatus: {
-                not: SigningStatus.SIGNED,
-              },
-            }),
-      },
+      recipient: getRecipientFieldsWhereInput({
+        recipient,
+        allowAssistantAccessToOtherRecipients: true,
+      }),
     },
     include: {
-      document: true,
+      envelope: true,
       recipient: true,
     },
   });
 
-  const { document } = field;
+  const { envelope } = field;
 
-  if (!document) {
+  if (!envelope) {
     throw new Error(`Document not found for field ${field.id}`);
   }
 
-  if (document.status !== DocumentStatus.PENDING) {
-    throw new Error(`Document ${document.id} must be pending`);
+  await assertSenderNotDisabled({ userId: envelope.userId });
+
+  if (envelope.status !== DocumentStatus.PENDING) {
+    throw new Error(`Document ${envelope.id} must be pending`);
   }
 
-  if (
-    recipient?.signingStatus === SigningStatus.SIGNED ||
-    field.recipient.signingStatus === SigningStatus.SIGNED
-  ) {
+  assertRecipientNotExpired(recipient);
+
+  if (recipient?.signingStatus === SigningStatus.SIGNED || field.recipient.signingStatus === SigningStatus.SIGNED) {
     throw new Error(`Recipient ${recipient.id} has already signed`);
   }
 
@@ -89,7 +82,7 @@ export const removeSignedFieldWithToken = async ({
       await tx.documentAuditLog.create({
         data: createDocumentAuditLogData({
           type: DOCUMENT_AUDIT_LOG_TYPE.DOCUMENT_FIELD_UNINSERTED,
-          documentId: document.id,
+          envelopeId: envelope.id,
           user: {
             name: recipient.name,
             email: recipient.email,

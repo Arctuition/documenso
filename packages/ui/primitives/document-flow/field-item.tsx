@@ -1,26 +1,28 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
-import { FieldType } from '@prisma/client';
-import { CopyPlus, Settings2, Trash } from 'lucide-react';
-import { createPortal } from 'react-dom';
-import { Rnd } from 'react-rnd';
-import { match } from 'ts-pattern';
-
+import { useElementBounds } from '@documenso/lib/client-only/hooks/use-element-bounds';
+import { useIsPageInDom } from '@documenso/lib/client-only/hooks/use-is-page-in-dom';
 import { PDF_VIEWER_PAGE_SELECTOR } from '@documenso/lib/constants/pdf-viewer';
 import type { TFieldMetaSchema } from '@documenso/lib/types/field-meta';
 import { ZCheckboxFieldMeta, ZRadioFieldMeta } from '@documenso/lib/types/field-meta';
+import { msg } from '@lingui/core/macro';
+import { useLingui } from '@lingui/react';
+import { Trans } from '@lingui/react/macro';
+import { FieldType } from '@prisma/client';
+import { CopyPlus, Settings2, SquareStack, Trash } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Rnd } from 'react-rnd';
+import { useSearchParams } from 'react-router';
 
-import { useSignerColors } from '../../lib/signer-colors';
+import { getRecipientColorStyles } from '../../lib/recipient-colors';
 import { cn } from '../../lib/utils';
-import { CheckboxField } from './advanced-fields/checkbox';
-import { RadioField } from './advanced-fields/radio';
-import { FieldIcon } from './field-icon';
+import { FieldContent } from './field-content';
 import type { TDocumentFlowFormSchema } from './types';
 
 type Field = TDocumentFlowFormSchema['fields'][0];
 
 export type FieldItemProps = {
   field: Field;
+  fieldClassName?: string;
   passive?: boolean;
   disabled?: boolean;
   minHeight?: number;
@@ -31,18 +33,34 @@ export type FieldItemProps = {
   onMove?: (_node: HTMLElement) => void;
   onRemove?: () => void;
   onDuplicate?: () => void;
+  onDuplicateAllPages?: () => void;
   onAdvancedSettings?: () => void;
   onFocus?: () => void;
   onBlur?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
   recipientIndex?: number;
-  hideRecipients?: boolean;
   hasErrors?: boolean;
   active?: boolean;
   onFieldActivate?: () => void;
   onFieldDeactivate?: () => void;
 };
 
-export const FieldItem = ({
+/**
+ * The item when editing fields??
+ */
+export const FieldItem = (props: FieldItemProps) => {
+  const isPageInDom = useIsPageInDom(props.field.pageNumber);
+
+  if (!isPageInDom) {
+    return null;
+  }
+
+  return <FieldItemInner {...props} />;
+};
+
+const FieldItemInner = ({
+  fieldClassName,
   field,
   passive,
   disabled,
@@ -54,16 +72,19 @@ export const FieldItem = ({
   onMove,
   onRemove,
   onDuplicate,
+  onDuplicateAllPages,
+  onAdvancedSettings,
   onFocus,
   onBlur,
-  onAdvancedSettings,
   recipientIndex = 0,
-  hideRecipients = false,
   hasErrors,
   active,
   onFieldActivate,
   onFieldDeactivate,
 }: FieldItemProps) => {
+  const { _ } = useLingui();
+  const [searchParams] = useSearchParams();
+
   const [coords, setCoords] = useState({
     pageX: 0,
     pageY: 0,
@@ -71,9 +92,13 @@ export const FieldItem = ({
     pageWidth: defaultWidth || 0,
   });
   const [settingsActive, setSettingsActive] = useState(false);
-  const $el = useRef(null);
+  const $el = useRef<HTMLDivElement>(null);
 
-  const signerStyles = useSignerColors(recipientIndex);
+  const $pageBounds = useElementBounds(`${PDF_VIEWER_PAGE_SELECTOR}[data-page-number="${field.pageNumber}"]`);
+
+  const signerStyles = getRecipientColorStyles(recipientIndex);
+
+  const isDevMode = searchParams.get('devmode') === 'true';
 
   const advancedField = [
     'NUMBER',
@@ -209,7 +234,7 @@ export const FieldItem = ({
   return createPortal(
     <Rnd
       key={coords.pageX + coords.pageY + coords.pageHeight + coords.pageWidth}
-      className={cn('group', {
+      className={cn('dark-mode-disabled group', {
         'pointer-events-none': passive,
         'pointer-events-none cursor-not-allowed opacity-75': disabled,
         'z-50': active && !disabled,
@@ -221,12 +246,15 @@ export const FieldItem = ({
       default={{
         x: coords.pageX,
         y: coords.pageY,
-        height: fixedSize ? '' : coords.pageHeight,
-        width: fixedSize ? '' : coords.pageWidth,
+        height: fixedSize ? 'auto' : coords.pageHeight,
+        width: fixedSize ? 'auto' : coords.pageWidth,
       }}
+      maxWidth={fixedSize && $pageBounds?.width ? $pageBounds.width - coords.pageX : undefined}
       bounds={`${PDF_VIEWER_PAGE_SELECTOR}[data-page-number="${field.pageNumber}"]`}
       onDragStart={() => onFieldActivate?.()}
       onResizeStart={() => onFieldActivate?.()}
+      onMouseEnter={() => onFocus?.()}
+      onMouseLeave={() => onBlur?.()}
       enableResizing={!fixedSize}
       resizeHandleStyles={{
         bottom: { bottom: -8, cursor: 'ns-resize' },
@@ -243,28 +271,25 @@ export const FieldItem = ({
         onMove?.(d.node);
       }}
     >
-      {(field.type === FieldType.RADIO || field.type === FieldType.CHECKBOX) &&
-        field.fieldMeta?.label && (
-          <div
-            className={cn(
-              'absolute -top-16 left-0 right-0 rounded-md p-2 text-center text-xs text-gray-700',
-              {
-                'bg-foreground/5 border-primary border': !fieldHasCheckedValues,
-                'bg-documenso-200 border-primary border': fieldHasCheckedValues,
-              },
-            )}
-          >
-            {field.fieldMeta.label}
-          </div>
-        )}
+      {(field.type === FieldType.RADIO || field.type === FieldType.CHECKBOX) && field.fieldMeta?.label && (
+        <div
+          className={cn('absolute -top-16 right-0 left-0 rounded-md p-2 text-center text-gray-700 text-xs', {
+            'border border-primary bg-foreground/5': !fieldHasCheckedValues,
+            'border border-primary bg-documenso-200': fieldHasCheckedValues,
+          })}
+        >
+          {field.fieldMeta.label}
+        </div>
+      )}
 
       <div
         className={cn(
-          'relative flex h-full w-full items-center justify-center bg-white',
-          !hasErrors && signerStyles.default.base,
-          !hasErrors && signerStyles.default.fieldItem,
+          'group/field-item relative flex h-full w-full items-center justify-center rounded-[2px] bg-white/90 px-2 ring-2 transition-colors',
+          !hasErrors && signerStyles.base,
+          !hasErrors && signerStyles.fieldItem,
+          fieldClassName,
           {
-            'rounded-lg border border-red-400 bg-red-400/20 shadow-[0_0_0_5px_theme(colors.red.500/10%),0_0_0_2px_theme(colors.red.500/40%),0_0_0_0.5px_theme(colors.red.500)]':
+            'rounded-[2px] border bg-red-400/20 shadow-[0_0_0_5px_theme(colors.red.500/10%),0_0_0_2px_theme(colors.red.500/40%),0_0_0_0.5px_theme(colors.red.500)] ring-red-400':
               hasErrors,
           },
           !fixedSize && '[container-type:size]',
@@ -278,38 +303,79 @@ export const FieldItem = ({
         }}
         ref={$el}
         data-field-id={field.nativeId}
+        data-field-type={field.type}
+        data-recipient-id={field.recipientId}
       >
-        {match(field.type)
-          .with('CHECKBOX', () => <CheckboxField field={field} />)
-          .with('RADIO', () => <RadioField field={field} />)
-          .otherwise(() => (
-            <FieldIcon fieldMeta={field.fieldMeta} type={field.type} />
-          ))}
+        <FieldContent field={field} />
 
-        {!hideRecipients && (
-          <div className="absolute -right-5 top-0 z-20 hidden h-full w-5 items-center justify-center group-hover:flex">
-            <div
-              className={cn(
-                'flex h-5 w-5 flex-col items-center justify-center rounded-r-md text-[0.5rem] font-bold text-white',
-                signerStyles.default.fieldItemInitials,
-                {
-                  '!opacity-50': disabled || passive,
-                },
+        {/* On hover, display recipient initials on side of field.  */}
+        <div className="absolute top-0 -right-5 z-20 hidden h-full w-5 items-center justify-center group-hover:flex">
+          <div
+            className={cn(
+              'flex h-5 w-5 flex-col items-center justify-center rounded-r-md font-bold text-[0.5rem] text-white opacity-0 transition duration-200 group-hover/field-item:opacity-100',
+              signerStyles.fieldItemInitials,
+              {
+                '!opacity-50': disabled || passive,
+              },
+            )}
+          >
+            {(field.signerEmail?.charAt(0)?.toUpperCase() ?? '') + (field.signerEmail?.charAt(1)?.toUpperCase() ?? '')}
+          </div>
+        </div>
+
+        {isDevMode && (
+          <div className="absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 rounded-md border border-border bg-background/95 px-2 py-1 shadow-sm backdrop-blur-sm">
+            <div className="flex flex-col gap-0.5 text-[9px]">
+              {field.nativeId && (
+                <span>
+                  <span className="text-muted-foreground">
+                    <Trans>Field ID:</Trans>
+                  </span>{' '}
+                  <span className="font-mono text-foreground">{field.nativeId}</span>
+                </span>
               )}
-            >
-              {(field.signerEmail?.charAt(0)?.toUpperCase() ?? '') +
-                (field.signerEmail?.charAt(1)?.toUpperCase() ?? '')}
+              <span>
+                <span className="text-muted-foreground">
+                  <Trans>Recipient ID:</Trans>
+                </span>{' '}
+                <span className="font-mono text-foreground">{field.recipientId}</span>
+              </span>
+              <span>
+                <span className="text-muted-foreground">
+                  <Trans>Pos X:</Trans>
+                </span>{' '}
+                <span className="font-mono text-foreground">{field.pageX.toFixed(2)}</span>
+              </span>
+              <span>
+                <span className="text-muted-foreground">
+                  <Trans>Pos Y:</Trans>
+                </span>{' '}
+                <span className="font-mono text-foreground">{field.pageY.toFixed(2)}</span>
+              </span>
+              <span>
+                <span className="text-muted-foreground">
+                  <Trans>Width:</Trans>
+                </span>{' '}
+                <span className="font-mono text-foreground">{field.pageWidth.toFixed(2)}</span>
+              </span>
+              <span>
+                <span className="text-muted-foreground">
+                  <Trans>Height:</Trans>
+                </span>{' '}
+                <span className="font-mono text-foreground">{field.pageHeight.toFixed(2)}</span>
+              </span>
             </div>
           </div>
         )}
       </div>
 
       {!disabled && settingsActive && (
-        <div className="z-[60] mt-1 flex justify-center">
-          <div className="dark:bg-background group flex items-center justify-evenly gap-x-1 rounded-md border bg-gray-900 p-0.5">
+        <div className="absolute z-[60] mt-1 flex w-full items-center justify-center">
+          <div className="group flex items-center justify-evenly gap-x-1 rounded-md border bg-gray-900 p-0.5">
             {advancedField && (
               <button
-                className="dark:text-muted-foreground/50 dark:hover:text-muted-foreground dark:hover:bg-foreground/10 rounded-sm p-1.5 text-gray-400 transition-colors hover:bg-white/10 hover:text-gray-100"
+                title={_(msg`Advanced settings`)}
+                className="rounded-sm p-1.5 text-gray-400 transition-colors hover:bg-white/10 hover:text-gray-100"
                 onClick={onAdvancedSettings}
                 onTouchEnd={onAdvancedSettings}
               >
@@ -318,7 +384,8 @@ export const FieldItem = ({
             )}
 
             <button
-              className="dark:text-muted-foreground/50 dark:hover:text-muted-foreground dark:hover:bg-foreground/10 rounded-sm p-1.5 text-gray-400 transition-colors hover:bg-white/10 hover:text-gray-100"
+              title={_(msg`Duplicate`)}
+              className="rounded-sm p-1.5 text-gray-400 transition-colors hover:bg-white/10 hover:text-gray-100"
               onClick={onDuplicate}
               onTouchEnd={onDuplicate}
             >
@@ -326,7 +393,17 @@ export const FieldItem = ({
             </button>
 
             <button
-              className="dark:text-muted-foreground/50 dark:hover:text-muted-foreground dark:hover:bg-foreground/10 rounded-sm p-1.5 text-gray-400 transition-colors hover:bg-white/10 hover:text-gray-100"
+              title={_(msg`Duplicate on all pages`)}
+              className="rounded-sm p-1.5 text-gray-400 transition-colors hover:bg-white/10 hover:text-gray-100"
+              onClick={onDuplicateAllPages}
+              onTouchEnd={onDuplicateAllPages}
+            >
+              <SquareStack className="h-3 w-3" />
+            </button>
+
+            <button
+              title={_(msg`Remove`)}
+              className="rounded-sm p-1.5 text-gray-400 transition-colors hover:bg-white/10 hover:text-gray-100"
               onClick={onRemove}
               onTouchEnd={onRemove}
             >

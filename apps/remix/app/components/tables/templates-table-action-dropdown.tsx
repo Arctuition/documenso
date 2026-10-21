@@ -1,11 +1,5 @@
-import { useState } from 'react';
-
-import { Trans } from '@lingui/react/macro';
-import type { Recipient, Template, TemplateDirectLink } from '@prisma/client';
-import { Copy, Edit, MoreHorizontal, MoveRight, Share2Icon, Trash2, Upload } from 'lucide-react';
-import { Link } from 'react-router';
-
-import { useSession } from '@documenso/lib/client-only/providers/session';
+import type { TRecipientLite } from '@documenso/lib/types/recipient';
+import { trpc as trpcReact } from '@documenso/trpc/react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,28 +7,34 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@documenso/ui/primitives/dropdown-menu';
+import { Trans } from '@lingui/react/macro';
+import { DocumentStatus, EnvelopeType, type TemplateDirectLink } from '@prisma/client';
+import { Copy, Download, Edit, FolderIcon, MoreHorizontal, Pencil, Share2Icon, Trash2, Upload } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router';
 
+import { EnvelopeDeleteDialog } from '../dialogs/envelope-delete-dialog';
+import { EnvelopeDownloadDialog } from '../dialogs/envelope-download-dialog';
+import { EnvelopeDuplicateDialog } from '../dialogs/envelope-duplicate-dialog';
+import { EnvelopeRenameDialog } from '../dialogs/envelope-rename-dialog';
+import { EnvelopesBulkMoveDialog } from '../dialogs/envelopes-bulk-move-dialog';
 import { TemplateBulkSendDialog } from '../dialogs/template-bulk-send-dialog';
-import { TemplateDeleteDialog } from '../dialogs/template-delete-dialog';
 import { TemplateDirectLinkDialog } from '../dialogs/template-direct-link-dialog';
-import { TemplateDuplicateDialog } from '../dialogs/template-duplicate-dialog';
-import { TemplateMoveDialog } from '../dialogs/template-move-dialog';
 
 export type TemplatesTableActionDropdownProps = {
-  row: Template & {
+  row: {
+    id: number;
+    userId: number;
+    teamId: number;
+    title: string;
+    folderId?: string | null;
+    envelopeId: string;
     directLink?: Pick<TemplateDirectLink, 'token' | 'enabled'> | null;
-    recipients: Recipient[];
+    recipients: TRecipientLite[];
   };
   templateRootPath: string;
-  teamId?: number;
+  teamId: number;
   onDelete?: () => Promise<void> | void;
-  onMove?: ({
-    templateId,
-    teamUrl,
-  }: {
-    templateId: number;
-    teamUrl: string;
-  }) => Promise<void> | void;
 };
 
 export const TemplatesTableActionDropdown = ({
@@ -42,98 +42,139 @@ export const TemplatesTableActionDropdown = ({
   templateRootPath,
   teamId,
   onDelete,
-  onMove,
 }: TemplatesTableActionDropdownProps) => {
-  const { user } = useSession();
+  const trpcUtils = trpcReact.useUtils();
+  const navigate = useNavigate();
 
-  const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [isTemplateDirectLinkDialogOpen, setTemplateDirectLinkDialogOpen] = useState(false);
-  const [isDuplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
-  const [isMoveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [isRenameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [isMoveToFolderDialogOpen, setMoveToFolderDialogOpen] = useState(false);
 
-  const isOwner = row.userId === user.id;
   const isTeamTemplate = row.teamId === teamId;
+  const canMutate = isTeamTemplate;
+
+  const formatPath = `${templateRootPath}/${row.envelopeId}/edit`;
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger>
-        <MoreHorizontal className="text-muted-foreground h-5 w-5" />
+      <DropdownMenuTrigger data-testid="template-table-action-btn">
+        <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent className="w-52" align="start" forceMount>
         <DropdownMenuLabel>Action</DropdownMenuLabel>
 
-        <DropdownMenuItem disabled={!isOwner && !isTeamTemplate} asChild>
-          <Link to={`${templateRootPath}/${row.id}/edit`}>
-            <Edit className="mr-2 h-4 w-4" />
-            <Trans>Edit</Trans>
-          </Link>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem
-          disabled={!isOwner && !isTeamTemplate}
-          onClick={() => setDuplicateDialogOpen(true)}
-        >
-          <Copy className="mr-2 h-4 w-4" />
-          <Trans>Duplicate</Trans>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem onClick={() => setTemplateDirectLinkDialogOpen(true)}>
-          <Share2Icon className="mr-2 h-4 w-4" />
-          <Trans>Direct link</Trans>
-        </DropdownMenuItem>
-
-        {!teamId && !row.teamId && (
-          <DropdownMenuItem onClick={() => setMoveDialogOpen(true)}>
-            <MoveRight className="mr-2 h-4 w-4" />
-            <Trans>Move to Team</Trans>
-          </DropdownMenuItem>
-        )}
-
-        <TemplateBulkSendDialog
-          templateId={row.id}
-          recipients={row.recipients}
+        <EnvelopeDownloadDialog
+          envelopeId={row.envelopeId}
+          envelopeStatus={DocumentStatus.DRAFT}
           trigger={
-            <div className="hover:bg-accent hover:text-accent-foreground relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors">
-              <Upload className="mr-2 h-4 w-4" />
-              <Trans>Bulk Send via CSV</Trans>
-            </div>
+            <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
+              <div>
+                <Download className="mr-2 h-4 w-4" />
+                <Trans>Download</Trans>
+              </div>
+            </DropdownMenuItem>
           }
         />
 
-        <DropdownMenuItem
-          disabled={!isOwner && !isTeamTemplate}
-          onClick={() => setDeleteDialogOpen(true)}
-        >
-          <Trash2 className="mr-2 h-4 w-4" />
-          <Trans>Delete</Trans>
-        </DropdownMenuItem>
+        {canMutate && (
+          <>
+            <DropdownMenuItem asChild>
+              <Link to={formatPath}>
+                <Edit className="mr-2 h-4 w-4" />
+                <Trans>Edit</Trans>
+              </Link>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem onClick={() => setRenameDialogOpen(true)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              <Trans>Rename</Trans>
+            </DropdownMenuItem>
+
+            <EnvelopeDuplicateDialog
+              envelopeId={row.envelopeId}
+              envelopeType={EnvelopeType.TEMPLATE}
+              trigger={
+                <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
+                  <div>
+                    <Copy className="mr-2 h-4 w-4" />
+                    <Trans>Duplicate</Trans>
+                  </div>
+                </DropdownMenuItem>
+              }
+            />
+
+            <TemplateDirectLinkDialog
+              templateId={row.id}
+              recipients={row.recipients}
+              directLink={row.directLink}
+              trigger={
+                <div
+                  data-testid="template-direct-link"
+                  className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                >
+                  <Share2Icon className="mr-2 h-4 w-4" />
+                  <Trans>Direct link</Trans>
+                </div>
+              }
+            />
+
+            <DropdownMenuItem onClick={() => setMoveToFolderDialogOpen(true)}>
+              <FolderIcon className="mr-2 h-4 w-4" />
+              <Trans>Move to Folder</Trans>
+            </DropdownMenuItem>
+
+            <TemplateBulkSendDialog
+              templateId={row.id}
+              recipients={row.recipients}
+              trigger={
+                <div className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground">
+                  <Upload className="mr-2 h-4 w-4" />
+                  <Trans>Bulk Send via CSV</Trans>
+                </div>
+              }
+            />
+
+            <EnvelopeDeleteDialog
+              id={row.envelopeId}
+              type={EnvelopeType.TEMPLATE}
+              status={DocumentStatus.DRAFT}
+              title={row.title}
+              canManageDocument={canMutate}
+              onDelete={onDelete}
+              trigger={
+                <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
+                  <div>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    <Trans>Delete</Trans>
+                  </div>
+                </DropdownMenuItem>
+              }
+            />
+          </>
+        )}
       </DropdownMenuContent>
 
-      <TemplateDuplicateDialog
-        id={row.id}
-        open={isDuplicateDialogOpen}
-        onOpenChange={setDuplicateDialogOpen}
+      <EnvelopesBulkMoveDialog
+        envelopeIds={[row.envelopeId]}
+        envelopeType={EnvelopeType.TEMPLATE}
+        open={isMoveToFolderDialogOpen}
+        onOpenChange={setMoveToFolderDialogOpen}
+        currentFolderId={row.folderId ?? undefined}
+        onSuccess={(folderId) => navigate(folderId ? `${templateRootPath}/f/${folderId}` : templateRootPath)}
       />
 
-      <TemplateDirectLinkDialog
-        template={row}
-        open={isTemplateDirectLinkDialogOpen}
-        onOpenChange={setTemplateDirectLinkDialogOpen}
-      />
-
-      <TemplateMoveDialog
-        templateId={row.id}
-        open={isMoveDialogOpen}
-        onOpenChange={setMoveDialogOpen}
-        onMove={onMove}
-      />
-
-      <TemplateDeleteDialog
-        id={row.id}
-        open={isDeleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        onDelete={onDelete}
+      <EnvelopeRenameDialog
+        id={row.envelopeId}
+        initialTitle={row.title}
+        open={isRenameDialogOpen}
+        onOpenChange={setRenameDialogOpen}
+        envelopeType="template"
+        onSuccess={async () => {
+          await Promise.all([
+            trpcUtils.template.findTemplates.invalidate(),
+            trpcUtils.template.findTemplatesInternal.invalidate(),
+          ]);
+        }}
       />
     </DropdownMenu>
   );
