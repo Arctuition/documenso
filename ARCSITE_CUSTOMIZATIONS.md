@@ -81,18 +81,25 @@ cloudservice (`arcservice/services/documenso.py`) only uses API v1 with a raw to
 
 ## Upgrade checklist (v1.10 → v2.21)
 
-1. Back up the database. The `add_envelopes` migration moves documents into `Envelope` and drops the
-   `Document` / `Template` tables; it can't be rolled back.
-2. Record `SELECT last_value FROM "Document_id_seq";` first. After migrating, run
-   `UPDATE "Counter" SET value = GREATEST(value, <last_value>) WHERE id = 'document';` so a
-   hard-deleted newest document's id can't be handed out again.
-3. Runtime: Node >= 24, npm >= 11.17. Prisma 6 and React 19 come with the upgrade.
-4. Env: `NEXT_PUBLIC_WEBAPP_URL` must be the exact public https origin (tRPC now checks `Origin`),
+1. Stop the app and back up the database. The `add_envelopes` migration moves documents into
+   `Envelope` and drops the `Document` / `Template` tables; it can't be rolled back.
+2. Record `SELECT last_value FROM "Document_id_seq";`, then run
+   `packages/prisma/arcsite-upgrade/pre-v2-upgrade.sql`. Upstream's `add_organisations` migration
+   only creates organisations for personal teams and teams/users with a `Subscription`; with billing
+   off the "ArcSite" team has none and the migration fails on `OrganisationGroup.organisationId`
+   ([upstream #1880](https://github.com/documenso/documenso/issues/1880)). The script adds a
+   placeholder subscription per such team.
+3. `npm run prisma:migrate-deploy`, then
+   `psql -v last_document_id=<last_value> -f packages/prisma/arcsite-upgrade/post-v2-upgrade.sql`. It
+   removes the placeholders and bumps `Counter` so a hard-deleted newest document's id can't be
+   handed out again.
+4. Runtime: Node >= 24, npm >= 11.17. Prisma 6 and React 19 come with the upgrade.
+5. Env: `NEXT_PUBLIC_WEBAPP_URL` must be the exact public https origin (tRPC now checks `Origin`),
    `NEXT_PUBLIC_UPLOAD_TRANSPORT=s3`, nginx must keep sending `X-Forwarded-For` (rate limits are
    per IP: 1000/min for `/api/v1`, 100/min for `/api/trpc`).
-5. Webhooks to private addresses are now blocked. Check `SELECT "webhookUrl" FROM "Webhook";`; if the
+6. Webhooks to private addresses are now blocked. Check `SELECT "webhookUrl" FROM "Webhook";`; if the
    cloudservice host resolves to a private IP from the Documenso box, add it to
    `NEXT_PRIVATE_WEBHOOK_SSRF_BYPASS_HOSTS`. Webhook calls now time out after 10s and don't follow
    redirects.
-6. Rehearse on a copy of prod, then run cloudservice's flow end to end: create → upload → fields →
+7. Rehearse on a copy of prod, then run cloudservice's flow end to end: create → upload → fields →
    send → sign (customer and sales, `?lang=fr`, iframe) → redirect → webhook → download.
