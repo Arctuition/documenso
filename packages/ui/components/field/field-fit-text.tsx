@@ -1,7 +1,8 @@
 import { useFitText } from '@documenso/lib/client-only/hooks/use-fit-text';
-import { cn } from '@documenso/ui/lib/utils';
 
-export type DocumentSigningFitTextProps = {
+import { cn } from '../../lib/utils';
+
+export type FieldFitTextProps = {
   children: React.ReactNode;
   className?: string;
   containerClassName?: string;
@@ -15,7 +16,7 @@ export type DocumentSigningFitTextProps = {
 /**
  * ArcSite: field text that shrinks to fit small field boxes on mobile.
  */
-export const DocumentSigningFitText = ({
+export const FieldFitText = ({
   children,
   className,
   containerClassName,
@@ -23,7 +24,7 @@ export const DocumentSigningFitText = ({
   minFontSize = 0.2,
   step = 0.05,
   refitKey,
-}: DocumentSigningFitTextProps) => {
+}: FieldFitTextProps) => {
   const { containerRef, textRef, fontSize } = useFitText<HTMLDivElement, HTMLParagraphElement>({
     maxFontSize,
     minFontSize,

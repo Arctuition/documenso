@@ -9,6 +9,7 @@ import type {
   TRemovedSignedFieldWithTokenMutationSchema,
   TSignFieldWithTokenMutationSchema,
 } from '@documenso/trpc/server/field-router/schema';
+import { FieldFitText } from '@documenso/ui/components/field/field-fit-text';
 import { Button } from '@documenso/ui/primitives/button';
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from '@documenso/ui/primitives/dialog';
 import { Sheet, SheetContent } from '@documenso/ui/primitives/sheet';
@@ -26,7 +27,6 @@ import { DocumentSigningDisclosure } from '~/components/general/document-signing
 
 import { useRequiredDocumentSigningAuthContext } from './document-signing-auth-provider';
 import { DocumentSigningFieldContainer } from './document-signing-field-container';
-import { DocumentSigningFitText } from './document-signing-fit-text';
 import { useRequiredDocumentSigningContext } from './document-signing-provider';
 import { useDocumentSigningRecipientContext } from './document-signing-recipient-provider';
 
@@ -321,7 +321,7 @@ export const DocumentSigningSignatureField = ({
       )}
 
       {state === 'empty' && (
-        <DocumentSigningFitText
+        <FieldFitText
           maxFontSize={2}
           minFontSize={0.8}
           step={0.1}
@@ -329,7 +329,7 @@ export const DocumentSigningSignatureField = ({
           className="w-full overflow-hidden text-center font-signature text-muted-foreground leading-tight duration-200 group-hover:text-primary group-hover:text-recipient-green"
         >
           <Trans>Signature</Trans>
-        </DocumentSigningFitText>
+        </FieldFitText>
       )}
 
       {state === 'signed-image' && signature?.signatureImageAsBase64 && (
@@ -342,7 +342,7 @@ export const DocumentSigningSignatureField = ({
 
       {/* ArcSite: keep typed signatures on one line, shrunk to fit small fields instead of overflowing. */}
       {state === 'signed-text' && (
-        <DocumentSigningFitText
+        <FieldFitText
           maxFontSize={2}
           minFontSize={0.3}
           refitKey={signature?.typedSignature}
@@ -350,7 +350,7 @@ export const DocumentSigningSignatureField = ({
           className="whitespace-nowrap text-center font-signature text-muted-foreground leading-tight duration-200"
         >
           {signature?.typedSignature}
-        </DocumentSigningFitText>
+        </FieldFitText>
       )}
 
       {/* Desktop: Change / Clear options above the signed field. */}

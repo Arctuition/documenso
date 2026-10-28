@@ -7,6 +7,7 @@ import type { DocumentMeta, Signature } from '@prisma/client';
 import { FieldType } from '@prisma/client';
 import { ChevronDown } from 'lucide-react';
 
+import { FieldFitText } from '../../components/field/field-fit-text';
 import { cn } from '../../lib/utils';
 import { Checkbox } from '../checkbox';
 import { Label } from '../label';
@@ -25,12 +26,25 @@ type FieldIconProps = {
     signature?: Signature | null;
   };
   documentMeta?: Pick<DocumentMeta, 'dateFormat'>;
+  /**
+   * ArcSite: shrink filled single-line values to fit the field instead of wrapping them.
+   */
+  fitInsertedText?: boolean;
 };
+
+const FIT_TEXT_FIELD_TYPES: FieldType[] = [
+  FieldType.DATE,
+  FieldType.INITIALS,
+  FieldType.NAME,
+  FieldType.EMAIL,
+  FieldType.SIGNATURE,
+  FieldType.FREE_SIGNATURE,
+];
 
 /**
  * Renders the content inside field containers prior to sealing.
  */
-export const FieldContent = ({ field, documentMeta }: FieldIconProps) => {
+export const FieldContent = ({ field, documentMeta, fitInsertedText = false }: FieldIconProps) => {
   const { _ } = useLingui();
 
   const { type, fieldMeta } = field;
@@ -163,6 +177,22 @@ export const FieldContent = ({ field, documentMeta }: FieldIconProps) => {
   }
 
   const textAlign = fieldMeta && 'textAlign' in fieldMeta ? fieldMeta.textAlign : 'left';
+
+  if (fitInsertedText && field.inserted && textToDisplay && FIT_TEXT_FIELD_TYPES.includes(field.type)) {
+    return (
+      <FieldFitText
+        maxFontSize={isSignatureField ? 1.125 : 0.825}
+        refitKey={textToDisplay}
+        className={cn('w-full whitespace-nowrap text-left text-foreground', {
+          '!text-center': textAlign === 'center',
+          '!text-right': textAlign === 'right',
+          'font-signature': isSignatureField,
+        })}
+      >
+        {textToDisplay}
+      </FieldFitText>
+    );
+  }
 
   return (
     <div className="flex h-full w-full items-center overflow-hidden">

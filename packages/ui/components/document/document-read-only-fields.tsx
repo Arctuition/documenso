@@ -13,11 +13,12 @@ import { PopoverHover } from '@documenso/ui/primitives/popover';
 import { useLingui } from '@lingui/react';
 import { Trans } from '@lingui/react/macro';
 import type { DocumentMeta, Field } from '@prisma/client';
-import { SigningStatus } from '@prisma/client';
+import { FieldType, SigningStatus } from '@prisma/client';
 import { Clock } from 'lucide-react';
 import { useState } from 'react';
 
 import { getRecipientColorStyles } from '../../lib/recipient-colors';
+import { cn } from '../../lib/utils';
 import { FieldContent } from '../../primitives/document-flow/field-content';
 
 const getRecipientDisplayText = (recipient: { name: string; email: string }) => {
@@ -99,6 +100,10 @@ export const DocumentReadOnlyFields = ({
               field={field}
               key={field.id}
               readonly={true}
+              // ArcSite: the default px-2 leaves almost no room for values in small fields.
+              className={cn({
+                'px-0.5': field.type !== FieldType.SIGNATURE && field.type !== FieldType.FREE_SIGNATURE,
+              })}
               color={
                 showRecipientColors
                   ? getRecipientColorStyles(recipientIds.findIndex((id) => id === field.recipientId))
@@ -151,7 +156,8 @@ export const DocumentReadOnlyFields = ({
                 </div>
               )}
 
-              <FieldContent field={field} documentMeta={documentMeta} />
+              {/* ArcSite: filled values shrink to fit instead of wrapping out of small fields. */}
+              <FieldContent field={field} documentMeta={documentMeta} fitInsertedText={true} />
             </FieldRootContainer>
           ),
       )}

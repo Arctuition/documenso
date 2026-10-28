@@ -50,10 +50,13 @@ cloudservice (`arcservice/services/documenso.py`) only uses API v1 with a raw to
 - Date fields are signed automatically when the page opens.
 - Signature field: bottom sheet on mobile; clicking a signed field shows Change / Clear; an existing
   signature is reused for other fields; uploaded signatures are disabled; thicker drawn strokes.
-- Field text shrinks to fit small fields (`use-fit-text.ts`, `document-signing-fit-text.tsx`), and
-  empty fields keep a 44px tap target. Fit text only transitions colour: upstream's `duration-200`
+- Field text shrinks to fit small fields (`use-fit-text.ts`, `packages/ui/components/field/field-fit-text.tsx`),
+  and empty fields keep a 44px tap target. Fit text only transitions colour: upstream's `duration-200`
   also animated font-size, so measurements read stale sizes and always shrank to the minimum.
 - Typed signatures stay on one line and shrink to fit instead of wrapping out of the field.
+- Fields other recipients already filled (e.g. the customer's date when sales signs) also stay on one
+  line and shrink to fit, with `px-0.5` instead of `px-2`: `FieldContent` `fitInsertedText`, turned on
+  by `DocumentReadOnlyFields`. Upstream wrapped them and clipped the second line.
 - The document starts right below the fixed header (spacing follows the header's real height) and
   uses slimmer side gutters on phones.
 - Mobile signature sheet: drag handle, taller pad (`SignaturePad` `contentClassName`), Sign/Cancel

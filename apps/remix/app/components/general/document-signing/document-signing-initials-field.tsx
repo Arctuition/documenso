@@ -10,6 +10,7 @@ import type {
   TRemovedSignedFieldWithTokenMutationSchema,
   TSignFieldWithTokenMutationSchema,
 } from '@documenso/trpc/server/field-router/schema';
+import { FieldFitText } from '@documenso/ui/components/field/field-fit-text';
 import { useToast } from '@documenso/ui/primitives/use-toast';
 import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react';
@@ -18,7 +19,6 @@ import { useRevalidator } from 'react-router';
 
 import { DocumentSigningFieldContainer } from './document-signing-field-container';
 import { DocumentSigningFieldsInserted, DocumentSigningFieldsLoader } from './document-signing-fields';
-import { DocumentSigningFitText } from './document-signing-fit-text';
 import { useRequiredDocumentSigningContext } from './document-signing-provider';
 import { useDocumentSigningRecipientContext } from './document-signing-recipient-provider';
 
@@ -138,12 +138,12 @@ export const DocumentSigningInitialsField = ({
       {isLoading && <DocumentSigningFieldsLoader />}
 
       {!field.inserted && (
-        <DocumentSigningFitText
+        <FieldFitText
           maxFontSize={0.625}
           className="whitespace-nowrap text-foreground duration-200 group-hover:text-recipient-green"
         >
           <Trans>Initials</Trans>
-        </DocumentSigningFitText>
+        </FieldFitText>
       )}
 
       {field.inserted && (
