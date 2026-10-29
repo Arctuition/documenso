@@ -424,6 +424,9 @@ export const ApiContractV1Implementation = tsr.router(ApiContractV1, {
           ],
           globalAccessAuth: body.authOptions?.globalAccessAuth,
           globalActionAuth: body.authOptions?.globalActionAuth,
+          // ArcSite: seal like v1.10 did, shrinking values to fit the field. The newer insertion lets
+          // them run to the right and clips them at the page edge (e.g. "... AM UTC" near the edge).
+          useLegacyFieldInsertion: true,
         },
         attachments: body.attachments,
         meta: {

@@ -68,6 +68,10 @@ cloudservice (`arcservice/services/documenso.py`) only uses API v1 with a raw to
 
 - When sealing V1 envelopes, date fields signed with no timezone (or UTC) get a ` UTC` suffix
   (`get-date-field-text-for-pdf.ts`).
+- API v1 `createDocument` sets `useLegacyFieldInsertion: true` (new `createEnvelope` option), so
+  sealing uses `legacy_insertFieldInPDF`, the same code v1.10 used: values shrink to fit the field.
+  Upstream's newer insertion lets them run right and clips them at the page edge, which cut the
+  `UTC` off sales dates near the right margin. Migrated documents already have the flag.
 
 ### Look and feel
 

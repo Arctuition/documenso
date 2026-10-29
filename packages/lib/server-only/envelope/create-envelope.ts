@@ -95,6 +95,8 @@ export type CreateEnvelopeOptions = {
     folderId?: string;
     delegatedDocumentOwner?: string;
     signatureLevel?: TSignatureLevel;
+    // ArcSite: lets API v1 keep the pre-v2 PDF field rendering.
+    useLegacyFieldInsertion?: boolean;
   };
   attachments?: Array<{
     label: string;
@@ -144,6 +146,7 @@ export const createEnvelope = async ({
     visibility: visibilityOverride,
     delegatedDocumentOwner,
     signatureLevel: requestedSignatureLevel,
+    useLegacyFieldInsertion,
   } = data;
 
   const signatureLevel = resolveSignatureLevel({
@@ -380,6 +383,7 @@ export const createEnvelope = async ({
         type,
         title,
         signatureLevel,
+        useLegacyFieldInsertion,
         qrToken: prefixedId('qr'),
         externalId,
         envelopeItems: {
