@@ -302,7 +302,8 @@ export const DocumentSigningSignatureField = ({
     const fieldRect = fieldElement.getBoundingClientRect();
 
     optionsRef.current.style.left = `${fieldRect.left + fieldRect.width / 2}px`;
-    optionsRef.current.style.top = `${fieldRect.top - 60}px`;
+    // ArcSite: 10px above the field card (v1.10 used -60 from a ref placed lower inside the field).
+    optionsRef.current.style.top = `${fieldRect.top - 10}px`;
     optionsRef.current.style.transform = 'translate(-50%, -100%)';
   }, [isMobile, showSignatureOptionsPopover]);
 
