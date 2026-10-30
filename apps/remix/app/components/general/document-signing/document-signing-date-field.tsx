@@ -18,6 +18,7 @@ import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react';
 import { Trans } from '@lingui/react/macro';
 import { Loader } from 'lucide-react';
+import { DateTime } from 'luxon';
 import { useRevalidator } from 'react-router';
 
 import { DocumentSigningFieldContainer } from './document-signing-field-container';
@@ -29,6 +30,11 @@ export type DocumentSigningDateFieldProps = {
   timezone?: string | null;
   onSignField?: (value: TSignFieldWithTokenMutationSchema) => Promise<void> | void;
   onUnsignField?: (value: TRemovedSignedFieldWithTokenMutationSchema) => Promise<void> | void;
+  /**
+   * ArcSite: show a filled date as the current time. The stored value is from when the page first
+   * opened, and completing the document stamps it again with the completion time anyway.
+   */
+  showCurrentTime?: boolean;
 };
 
 export const DocumentSigningDateField = ({
@@ -37,6 +43,7 @@ export const DocumentSigningDateField = ({
   timezone = DEFAULT_DOCUMENT_TIME_ZONE,
   onSignField,
   onUnsignField,
+  showCurrentTime = false,
 }: DocumentSigningDateFieldProps) => {
   const { _ } = useLingui();
   const { toast } = useToast();
@@ -56,10 +63,21 @@ export const DocumentSigningDateField = ({
   const safeFieldMeta = ZDateFieldMeta.safeParse(field.fieldMeta);
   const parsedFieldMeta = safeFieldMeta.success ? safeFieldMeta.data : null;
 
-  const localDateString = convertToLocalSystemFormat(field.customText, dateFormat, timezone);
-  const isDifferentTime = field.inserted && localDateString !== field.customText;
+  // ArcSite: see `showCurrentTime`.
+  const displayedField =
+    showCurrentTime && field.inserted
+      ? {
+          ...field,
+          customText: DateTime.now()
+            .setZone(timezone ?? DEFAULT_DOCUMENT_TIME_ZONE)
+            .toFormat(dateFormat ?? DEFAULT_DOCUMENT_DATE_FORMAT),
+        }
+      : field;
+
+  const localDateString = convertToLocalSystemFormat(displayedField.customText, dateFormat, timezone);
+  const isDifferentTime = field.inserted && localDateString !== displayedField.customText;
   const tooltipText = _(
-    msg`"${field.customText}" will appear on the document as it has a timezone of "${timezone || ''}".`,
+    msg`"${displayedField.customText}" will appear on the document as it has a timezone of "${timezone || ''}".`,
   );
 
   const onSign = async (authOptions?: TRecipientActionAuth) => {

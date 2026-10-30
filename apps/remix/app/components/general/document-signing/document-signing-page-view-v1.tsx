@@ -321,6 +321,7 @@ export const DocumentSigningPageViewV1 = ({
                     field={field}
                     dateFormat={documentMeta?.dateFormat ?? DEFAULT_DOCUMENT_DATE_FORMAT}
                     timezone={documentMeta?.timezone ?? DEFAULT_DOCUMENT_TIME_ZONE}
+                    showCurrentTime={true}
                   />
                 ))
                 .with(FieldType.EMAIL, () => <DocumentSigningEmailField key={field.id} field={field} />)
