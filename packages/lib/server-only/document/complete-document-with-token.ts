@@ -219,7 +219,12 @@ export const completeDocumentWithToken = async ({
   });
 
   // This should be scoped to the current recipient.
-  const uninsertedDateFields = fields.filter((field) => field.type === FieldType.DATE && !field.inserted);
+  // ArcSite: the V1 signing page fills date fields when it first opens, so stamp all of them again
+  // here; otherwise opening the link one day and signing the next leaves the earlier date on the PDF.
+  const dateFieldsToStamp = fields.filter(
+    (field) => field.type === FieldType.DATE && (envelope.internalVersion === 1 || !field.inserted),
+  );
+  const dateFieldIdsToStamp = new Set(dateFieldsToStamp.map((field) => field.id));
 
   let recipientName = recipient.name;
   let recipientEmail = recipient.email;
@@ -250,8 +255,8 @@ export const completeDocumentWithToken = async ({
     });
   }
 
-  // Auto-insert all un-inserted date fields for V2 envelopes at completion time.
-  if (envelope.internalVersion === 2 && uninsertedDateFields.length > 0) {
+  // Auto-insert date fields at completion time (V2: un-inserted ones; V1: all of them, see above).
+  if (dateFieldsToStamp.length > 0) {
     const formattedDate = DateTime.now()
       .setZone(envelope.documentMeta?.timezone ?? DEFAULT_DOCUMENT_TIME_ZONE)
       .toFormat(envelope.documentMeta?.dateFormat ?? DEFAULT_DOCUMENT_DATE_FORMAT);
@@ -264,7 +269,7 @@ export const completeDocumentWithToken = async ({
     await prisma.field.updateMany({
       where: {
         id: {
-          in: uninsertedDateFields.map((field) => field.id),
+          in: [...dateFieldIdsToStamp],
         },
       },
       data: {
@@ -274,7 +279,7 @@ export const completeDocumentWithToken = async ({
 
     // Create audit log entries for each auto-inserted date field.
     await prisma.documentAuditLog.createMany({
-      data: uninsertedDateFields.map((field) =>
+      data: dateFieldsToStamp.map((field) =>
         createDocumentAuditLogData({
           type: DOCUMENT_AUDIT_LOG_TYPE.DOCUMENT_FIELD_INSERTED,
           envelopeId: envelope.id,
@@ -300,7 +305,7 @@ export const completeDocumentWithToken = async ({
 
     // Update the local fields array so the subsequent validation check passes.
     fields = fields.map((field) => {
-      if (field.type === FieldType.DATE && !field.inserted) {
+      if (dateFieldIdsToStamp.has(field.id)) {
         return {
           ...field,
           ...newDateFieldValues,

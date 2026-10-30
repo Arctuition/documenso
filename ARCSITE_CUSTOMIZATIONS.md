@@ -47,7 +47,9 @@ cloudservice (`arcservice/services/documenso.py`) only uses API v1 with a raw to
 - Fixed compact header with the title and a "Next field (n)" / "Finish" button
   (`document-signing-next-field.tsx`); the signing sidebar, mobile widget and reject button are gone.
 - Full-width PDF, no "Page x of y" labels.
-- Date fields are signed automatically when the page opens.
+- Date fields are signed automatically when the page opens, and `completeDocumentWithToken` stamps
+  them again with the completion time, so a recipient who opens the link one day and signs the next
+  gets the signing date (v1.10 kept the first-open date).
 - Signature field: bottom sheet on mobile; clicking a signed field shows Change / Clear; an existing
   signature is reused for other fields; uploaded signatures are disabled; thicker drawn strokes.
 - Field text shrinks to fit small fields (`use-fit-text.ts`, `packages/ui/components/field/field-fit-text.tsx`),
