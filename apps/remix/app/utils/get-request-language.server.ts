@@ -3,6 +3,10 @@ import { extractLocaleData } from '@documenso/lib/utils/i18n';
 
 import { langCookie } from '~/storage/lang-cookie.server';
 
+/**
+ * ArcSite: resolve the request language from `?lang=` first, then the lang cookie,
+ * then the Accept-Language header.
+ */
 export const getRequestLanguage = async (request: Request): Promise<SupportedLanguageCodes> => {
   const urlLanguage = new URL(request.url).searchParams.get('lang');
 

@@ -1,9 +1,4 @@
-import { msg } from '@lingui/core/macro';
-import { useLingui } from '@lingui/react';
-import { Trans } from '@lingui/react/macro';
-import { Loader } from 'lucide-react';
-import { useRevalidator } from 'react-router';
-
+import { useAnalytics } from '@documenso/lib/client-only/hooks/use-analytics';
 import { DO_NOT_INVALIDATE_QUERY_ON_MUTATION } from '@documenso/lib/constants/trpc';
 import { AppError, AppErrorCode } from '@documenso/lib/errors/app-error';
 import type { TRecipientActionAuth } from '@documenso/lib/types/document-auth';
@@ -14,10 +9,18 @@ import type {
   TRemovedSignedFieldWithTokenMutationSchema,
   TSignFieldWithTokenMutationSchema,
 } from '@documenso/trpc/server/field-router/schema';
-import { cn } from '@documenso/ui/lib/utils';
 import { useToast } from '@documenso/ui/primitives/use-toast';
+import { msg } from '@lingui/core/macro';
+import { useLingui } from '@lingui/react';
+import { Trans } from '@lingui/react/macro';
+import { useRevalidator } from 'react-router';
 
 import { DocumentSigningFieldContainer } from './document-signing-field-container';
+import {
+  DocumentSigningFieldsInserted,
+  DocumentSigningFieldsLoader,
+  DocumentSigningFieldsUninserted,
+} from './document-signing-fields';
 import { useRequiredDocumentSigningContext } from './document-signing-provider';
 import { useDocumentSigningRecipientContext } from './document-signing-recipient-provider';
 
@@ -27,14 +30,11 @@ export type DocumentSigningEmailFieldProps = {
   onUnsignField?: (value: TRemovedSignedFieldWithTokenMutationSchema) => Promise<void> | void;
 };
 
-export const DocumentSigningEmailField = ({
-  field,
-  onSignField,
-  onUnsignField,
-}: DocumentSigningEmailFieldProps) => {
+export const DocumentSigningEmailField = ({ field, onSignField, onUnsignField }: DocumentSigningEmailFieldProps) => {
   const { _ } = useLingui();
   const { toast } = useToast();
   const { revalidate } = useRevalidator();
+  const analytics = useAnalytics();
 
   const { email: providedEmail } = useRequiredDocumentSigningContext();
 
@@ -43,10 +43,8 @@ export const DocumentSigningEmailField = ({
   const { mutateAsync: signFieldWithToken, isPending: isSignFieldWithTokenLoading } =
     trpc.field.signFieldWithToken.useMutation(DO_NOT_INVALIDATE_QUERY_ON_MUTATION);
 
-  const {
-    mutateAsync: removeSignedFieldWithToken,
-    isPending: isRemoveSignedFieldWithTokenLoading,
-  } = trpc.field.removeSignedFieldWithToken.useMutation(DO_NOT_INVALIDATE_QUERY_ON_MUTATION);
+  const { mutateAsync: removeSignedFieldWithToken, isPending: isRemoveSignedFieldWithTokenLoading } =
+    trpc.field.removeSignedFieldWithToken.useMutation(DO_NOT_INVALIDATE_QUERY_ON_MUTATION);
 
   const isLoading = isSignFieldWithTokenLoading || isRemoveSignedFieldWithTokenLoading;
 
@@ -82,6 +80,13 @@ export const DocumentSigningEmailField = ({
 
       console.error(err);
 
+      analytics.captureException(err, {
+        source: 'signing',
+        location: 'sign_field',
+        fieldType: field.type,
+        recipientId: field.recipientId,
+      });
+
       toast({
         title: _(msg`Error`),
         description: isAssistantMode
@@ -110,6 +115,13 @@ export const DocumentSigningEmailField = ({
     } catch (err) {
       console.error(err);
 
+      analytics.captureException(err, {
+        source: 'signing',
+        location: 'remove_field',
+        fieldType: field.type,
+        recipientId: field.recipientId,
+      });
+
       toast({
         title: _(msg`Error`),
         description: _(msg`An error occurred while removing the field.`),
@@ -120,34 +132,18 @@ export const DocumentSigningEmailField = ({
 
   return (
     <DocumentSigningFieldContainer field={field} onSign={onSign} onRemove={onRemove} type="Email">
-      {isLoading && (
-        <div className="bg-background absolute inset-0 flex items-center justify-center rounded-md">
-          <Loader className="text-primary h-5 w-5 animate-spin md:h-8 md:w-8" />
-        </div>
-      )}
+      {isLoading && <DocumentSigningFieldsLoader />}
 
       {!field.inserted && (
-        <p className="group-hover:text-primary text-muted-foreground text-[clamp(0.425rem,25cqw,0.825rem)] duration-200 group-hover:text-yellow-300">
+        <DocumentSigningFieldsUninserted>
           <Trans>Email</Trans>
-        </p>
+        </DocumentSigningFieldsUninserted>
       )}
 
       {field.inserted && (
-        <div className="flex h-full w-full items-center">
-          <p
-            className={cn(
-              'text-muted-foreground dark:text-background/80 w-full text-[clamp(0.425rem,25cqw,0.825rem)] duration-200',
-              {
-                'text-left': parsedFieldMeta?.textAlign === 'left',
-                'text-center':
-                  !parsedFieldMeta?.textAlign || parsedFieldMeta?.textAlign === 'center',
-                'text-right': parsedFieldMeta?.textAlign === 'right',
-              },
-            )}
-          >
-            {field.customText}
-          </p>
-        </div>
+        <DocumentSigningFieldsInserted textAlign={parsedFieldMeta?.textAlign}>
+          {field.customText}
+        </DocumentSigningFieldsInserted>
       )}
     </DocumentSigningFieldContainer>
   );

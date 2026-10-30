@@ -1,13 +1,18 @@
-import { msg } from '@lingui/core/macro';
-import { useLingui } from '@lingui/react';
-import { Trans } from '@lingui/react/macro';
-import { Link, useParams } from 'react-router';
-
 import LogoImage from '@documenso/assets/logo.png';
 import { authClient } from '@documenso/auth/client';
-import { getRootHref } from '@documenso/lib/utils/params';
+import { useOptionalCurrentOrganisation } from '@documenso/lib/client-only/providers/organisation';
+import { useSession } from '@documenso/lib/client-only/providers/session';
+import { canAccessOrganisationAnalytics, formatOrganisationAnalyticsPath } from '@documenso/lib/utils/organisations';
+import { canExecuteTeamAction, formatAnalyticsPath } from '@documenso/lib/utils/teams';
+import { trpc } from '@documenso/trpc/react';
 import { Sheet, SheetContent } from '@documenso/ui/primitives/sheet';
 import { ThemeSwitcher } from '@documenso/ui/primitives/theme-switcher';
+import { Trans, useLingui } from '@lingui/react/macro';
+import { ReadStatus } from '@prisma/client';
+import { useMemo } from 'react';
+import { Link } from 'react-router';
+
+import { useOptionalCurrentTeam } from '~/providers/team';
 
 export type AppNavMobileProps = {
   isMenuOpen: boolean;
@@ -15,62 +20,98 @@ export type AppNavMobileProps = {
 };
 
 export const AppNavMobile = ({ isMenuOpen, onMenuOpenChange }: AppNavMobileProps) => {
-  const { _ } = useLingui();
+  const { t } = useLingui();
 
-  const params = useParams();
+  const { organisations } = useSession();
+
+  const currentTeam = useOptionalCurrentTeam();
+  const currentOrganisation = useOptionalCurrentOrganisation();
+
+  const { data: unreadCountData } = trpc.document.inbox.getCount.useQuery(
+    {
+      readStatus: ReadStatus.NOT_OPENED,
+    },
+    {
+      // refetchInterval: 30000, // Refetch every 30 seconds
+    },
+  );
 
   const handleMenuItemClick = () => {
     onMenuOpenChange?.(false);
   };
 
-  const rootHref = getRootHref(params, { returnEmptyRootString: true });
+  const menuNavigationLinks = useMemo(() => {
+    const navigationTeam =
+      currentTeam ??
+      (organisations.length === 1 && organisations[0].teams.length === 1 ? organisations[0].teams[0] : null);
 
-  const menuNavigationLinks = [
-    {
-      href: `${rootHref}/documents`,
-      text: msg`Documents`,
-    },
-    {
-      href: `${rootHref}/templates`,
-      text: msg`Templates`,
-    },
-    {
-      href: '/settings/teams',
-      text: msg`Teams`,
-    },
-    {
-      href: '/settings/profile',
-      text: msg`Settings`,
-    },
-  ];
+    if (!navigationTeam) {
+      return [
+        {
+          href: '/inbox',
+          text: t`Inbox`,
+        },
+        ...(currentOrganisation && canAccessOrganisationAnalytics(currentOrganisation.currentOrganisationRole)
+          ? [{ href: formatOrganisationAnalyticsPath(currentOrganisation.url), text: t`Analytics` }]
+          : []),
+        {
+          href: '/settings/profile',
+          text: t`Settings`,
+        },
+      ];
+    }
+
+    const teamUrl = navigationTeam.url;
+
+    return [
+      {
+        href: `/t/${teamUrl}/documents`,
+        text: t`Documents`,
+      },
+      {
+        href: `/t/${teamUrl}/templates`,
+        text: t`Templates`,
+      },
+      {
+        href: '/inbox',
+        text: t`Inbox`,
+      },
+      ...(canExecuteTeamAction('MANAGE_TEAM', navigationTeam.currentTeamRole)
+        ? [{ href: formatAnalyticsPath(teamUrl), text: t`Analytics` }]
+        : []),
+      {
+        href: '/settings/profile',
+        text: t`Settings`,
+      },
+    ];
+  }, [currentTeam, currentOrganisation, organisations, t]);
 
   return (
     <Sheet open={isMenuOpen} onOpenChange={onMenuOpenChange}>
       <SheetContent className="flex w-full max-w-[350px] flex-col">
         <Link to="/" onClick={handleMenuItemClick}>
-          <img
-            src={LogoImage}
-            alt="Documenso Logo"
-            className="dark:invert"
-            width={170}
-            height={25}
-          />
+          <img src={LogoImage} alt="Documenso Logo" className="dark:invert" width={170} height={25} />
         </Link>
 
         <div className="mt-8 flex w-full flex-col items-start gap-y-4">
           {menuNavigationLinks.map(({ href, text }) => (
             <Link
               key={href}
-              className="text-foreground hover:text-foreground/80 text-2xl font-semibold"
+              className="flex items-center gap-2 font-semibold text-2xl text-foreground hover:text-foreground/80"
               to={href}
               onClick={() => handleMenuItemClick()}
             >
-              {_(text)}
+              {text}
+              {href === '/inbox' && unreadCountData && unreadCountData.count > 0 && (
+                <span className="flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-primary px-1.5 font-semibold text-primary-foreground text-xs">
+                  {unreadCountData.count > 99 ? '99+' : unreadCountData.count}
+                </span>
+              )}
             </Link>
           ))}
 
           <button
-            className="text-foreground hover:text-foreground/80 text-2xl font-semibold"
+            className="font-semibold text-2xl text-foreground hover:text-foreground/80"
             onClick={async () => authClient.signOut()}
           >
             <Trans>Sign Out</Trans>
@@ -83,7 +124,9 @@ export const AppNavMobile = ({ isMenuOpen, onMenuOpenChange }: AppNavMobileProps
           </div>
 
           <p className="text-muted-foreground text-sm">
-            © {new Date().getFullYear()} Documenso, Inc. <br /> All rights reserved.
+            © {new Date().getFullYear()} Documenso, Inc.
+            <br />
+            <Trans>All rights reserved.</Trans>
           </p>
         </div>
       </SheetContent>

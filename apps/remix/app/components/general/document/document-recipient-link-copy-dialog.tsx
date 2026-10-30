@@ -1,15 +1,7 @@
-import { useEffect, useState } from 'react';
-
-import { msg } from '@lingui/core/macro';
-import { useLingui } from '@lingui/react';
-import { Trans } from '@lingui/react/macro';
-import type { Recipient } from '@prisma/client';
-import { RecipientRole } from '@prisma/client';
-import { useSearchParams } from 'react-router';
-
 import { useCopyToClipboard } from '@documenso/lib/client-only/hooks/use-copy-to-clipboard';
 import { useUpdateSearchParams } from '@documenso/lib/client-only/hooks/use-update-search-params';
 import { RECIPIENT_ROLES_DESCRIPTION } from '@documenso/lib/constants/recipient-roles';
+import type { TRecipientLite } from '@documenso/lib/types/recipient';
 import { formatSigningLink } from '@documenso/lib/utils/recipients';
 import { CopyTextButton } from '@documenso/ui/components/common/copy-text-button';
 import { AvatarWithText } from '@documenso/ui/primitives/avatar';
@@ -25,10 +17,16 @@ import {
   DialogTrigger,
 } from '@documenso/ui/primitives/dialog';
 import { useToast } from '@documenso/ui/primitives/use-toast';
+import { msg } from '@lingui/core/macro';
+import { useLingui } from '@lingui/react';
+import { Trans } from '@lingui/react/macro';
+import { RecipientRole } from '@prisma/client';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router';
 
 export type DocumentRecipientLinkCopyDialogProps = {
   trigger?: React.ReactNode;
-  recipients: Recipient[];
+  recipients: TRecipientLite[];
   language?: string | null;
 };
 
@@ -83,13 +81,11 @@ export const DocumentRecipientLinkCopyDialog = ({
           </DialogTitle>
 
           <DialogDescription>
-            <Trans>
-              You can copy and share these links to recipients so they can action the document.
-            </Trans>
+            <Trans>You can copy and share these links to recipients so they can action the document.</Trans>
           </DialogDescription>
         </DialogHeader>
 
-        <ul className="text-muted-foreground divide-y rounded-lg border">
+        <ul className="divide-y rounded-lg border text-muted-foreground">
           {recipients.length === 0 && (
             <li className="flex flex-col items-center justify-center py-6 text-sm">
               <Trans>No recipients</Trans>
