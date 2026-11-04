@@ -25,8 +25,10 @@ cloudservice (`arcservice/services/documenso.py`) only uses API v1 with a raw to
 
 - **Per-recipient `redirectUrl`**: `Recipient.redirectUrl` column (migration
   `20250401032950_add_redirect_url_field_to_recipients`, keep the name, prod already applied it),
-  accepted by API v1 `createDocument`, saved in `setDocumentRecipients`, exposed on
-  `ZRecipientLiteSchema`. After signing, and when opening an already signed link, the signer goes to
+  accepted by API v1 `createDocument` and saved in `setDocumentRecipients`. The V1 page reads it from
+  the full Prisma recipient; the V2 signing schema (`getEnvelopeForRecipientSigning`) adds it to the
+  signing recipient. `ZRecipientLiteSchema` (API v2 / tRPC responses) deliberately leaves it out, since
+  nothing reads it there. After signing, and when opening an already signed link, the signer goes to
   `recipient.redirectUrl`, then `documentMeta.redirectUrl`, then `/sign/{token}/complete`
   (V1 page, V2 complete dialog, both signing loaders).
 - **Signing links never expire by default**: `resolveExpiresAt(null)` returns `null` and new
@@ -65,7 +67,11 @@ cloudservice (`arcservice/services/documenso.py`) only uses API v1 with a raw to
 - Mobile signature sheet: drag handle, taller pad (`SignaturePad` `contentClassName`), Sign/Cancel
   pinned to the bottom above the home indicator, bigger "Clear Signature" tap target; the field hint
   says "Tap" on phones.
-- "Type" signature tab is labelled "Type Signature"; recipients can't hide completed fields.
+- The signature pad's "Type" tab uses msgid `Type Signature` (context `Type signature`), carried over
+  from v1.10 where it only gave French its own "Saisir". English still shows "Type". Upstream's
+  `msgctxt "Type signature"` / `msgid "Type"` now does the same job (and translates de/es/it/pl
+  better), so this can go back to upstream.
+- Recipients can't hide completed fields.
 
 ### PDF
 
