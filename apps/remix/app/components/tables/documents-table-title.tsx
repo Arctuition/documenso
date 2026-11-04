@@ -1,29 +1,32 @@
-import type { Document, Recipient, Team, User } from '@prisma/client';
+import { useSession } from '@documenso/lib/client-only/providers/session';
+import type { TDocumentMany as TDocumentRow } from '@documenso/lib/types/document';
+import { findRecipientByEmail } from '@documenso/lib/utils/recipients';
+import { formatDocumentsPath } from '@documenso/lib/utils/teams';
 import { Link } from 'react-router';
 import { match } from 'ts-pattern';
 
-import { useSession } from '@documenso/lib/client-only/providers/session';
-import { formatDocumentsPath } from '@documenso/lib/utils/teams';
+import { useCurrentTeam } from '~/providers/team';
 
 export type DataTableTitleProps = {
-  row: Document & {
-    user: Pick<User, 'id' | 'name' | 'email'>;
-    team: Pick<Team, 'url'> | null;
-    recipients: Recipient[];
-  };
-  teamUrl?: string;
+  row: TDocumentRow;
+  teamUrl: string;
 };
 
 export const DataTableTitle = ({ row, teamUrl }: DataTableTitleProps) => {
   const { user } = useSession();
+  const team = useCurrentTeam();
 
-  const recipient = row.recipients.find((recipient) => recipient.email === user.email);
+  const recipient = findRecipientByEmail({
+    recipients: row.recipients,
+    userEmail: user.email,
+    teamEmail: team.teamEmail?.email,
+  });
 
   const isOwner = row.user.id === user.id;
   const isRecipient = !!recipient;
   const isCurrentTeamDocument = teamUrl && row.team?.url === teamUrl;
 
-  const documentsPath = formatDocumentsPath(isCurrentTeamDocument ? teamUrl : undefined);
+  const documentsPath = formatDocumentsPath(teamUrl);
 
   return match({
     isOwner,
@@ -32,7 +35,7 @@ export const DataTableTitle = ({ row, teamUrl }: DataTableTitleProps) => {
   })
     .with({ isOwner: true }, { isCurrentTeamDocument: true }, () => (
       <Link
-        to={`${documentsPath}/${row.id}`}
+        to={`${documentsPath}/${row.envelopeId}`}
         title={row.title}
         className="block max-w-[10rem] truncate font-medium hover:underline md:max-w-[20rem]"
       >
@@ -49,8 +52,6 @@ export const DataTableTitle = ({ row, teamUrl }: DataTableTitleProps) => {
       </Link>
     ))
     .otherwise(() => (
-      <span className="block max-w-[10rem] truncate font-medium hover:underline md:max-w-[20rem]">
-        {row.title}
-      </span>
+      <span className="block max-w-[10rem] truncate font-medium hover:underline md:max-w-[20rem]">{row.title}</span>
     ));
 };

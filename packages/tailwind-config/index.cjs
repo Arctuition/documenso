@@ -11,6 +11,7 @@ module.exports = {
       fontFamily: {
         sans: ['var(--font-sans)', ...fontFamily.sans],
         signature: ['var(--font-signature)'],
+        noto: ['var(--font-noto)'],
       },
       zIndex: {
         9999: '9999',
@@ -30,6 +31,7 @@ module.exports = {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
         },
+        'envelope-editor-background': 'hsl(var(--envelope-editor-background))',
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
           foreground: 'hsl(var(--secondary-foreground))',
@@ -108,6 +110,14 @@ module.exports = {
           900: '#364772',
           950: '#252d46',
         },
+        recipient: {
+          green: 'hsl(var(--recipient-green))',
+          blue: 'hsl(var(--recipient-blue))',
+          purple: 'hsl(var(--recipient-purple))',
+          orange: 'hsl(var(--recipient-orange))',
+          yellow: 'hsl(var(--recipient-yellow))',
+          pink: 'hsl(var(--recipient-pink))',
+        },
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
@@ -157,10 +167,8 @@ module.exports = {
 };
 
 function addVariablesForColors({ addBase, theme }) {
-  let allColors = flattenColorPalette(theme('colors'));
-  let newVars = Object.fromEntries(
-    Object.entries(allColors).map(([key, val]) => [`--${key}`, val]),
-  );
+  const allColors = flattenColorPalette(theme('colors'));
+  const newVars = Object.fromEntries(Object.entries(allColors).map(([key, val]) => [`--${key}`, val]));
 
   addBase({
     ':root': newVars,

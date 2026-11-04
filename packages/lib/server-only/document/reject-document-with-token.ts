@@ -1,50 +1,66 @@
-import { SigningStatus } from '@prisma/client';
-
+// This is closely related to `reject-document-on-behalf-of.ts` but is intentionally
+// kept as a separate method rather than merged into one. This file focuses on
+// rejection from a recipient perspective (the recipient rejecting via their token),
+// whereas `reject-document-on-behalf-of.ts` focuses on it from an API/programmatic
+// perspective (an authenticated API user acting on behalf of a recipient).
+//
+// Code changes in one should probably be mirrored to the other, particularly in
+// relation to the jobs triggered after a rejection.
 import { jobs } from '@documenso/lib/jobs/client';
 import { prisma } from '@documenso/prisma';
+import { DocumentStatus, EnvelopeType, SigningStatus } from '@prisma/client';
 
 import { AppError, AppErrorCode } from '../../errors/app-error';
 import { DOCUMENT_AUDIT_LOG_TYPE } from '../../types/document-audit-logs';
 import type { RequestMetadata } from '../../universal/extract-request-metadata';
 import { createDocumentAuditLogData } from '../../utils/document-audit-logs';
+import type { EnvelopeIdOptions } from '../../utils/envelope';
+import { mapSecondaryIdToDocumentId, unsafeBuildEnvelopeIdQuery } from '../../utils/envelope';
+import { assertRecipientNotExpired } from '../../utils/recipients';
+import { assertSenderNotDisabled } from '../user/assert-user-not-disabled';
 
 export type RejectDocumentWithTokenOptions = {
   token: string;
-  documentId: number;
+  id: EnvelopeIdOptions;
   reason: string;
   requestMetadata?: RequestMetadata;
 };
 
-export async function rejectDocumentWithToken({
-  token,
-  documentId,
-  reason,
-  requestMetadata,
-}: RejectDocumentWithTokenOptions) {
+export async function rejectDocumentWithToken({ token, id, reason, requestMetadata }: RejectDocumentWithTokenOptions) {
   // Find the recipient and document in a single query
   const recipient = await prisma.recipient.findFirst({
     where: {
       token,
-      documentId,
+      envelope: unsafeBuildEnvelopeIdQuery(id, EnvelopeType.DOCUMENT),
     },
     include: {
-      document: {
-        include: {
-          user: true,
-          recipients: true,
-          documentMeta: true,
-        },
-      },
+      envelope: true,
     },
   });
 
-  const document = recipient?.document;
+  const envelope = recipient?.envelope;
 
-  if (!recipient || !document) {
+  if (!recipient || !envelope) {
     throw new AppError(AppErrorCode.NOT_FOUND, {
       message: 'Document or recipient not found',
     });
   }
+
+  await assertSenderNotDisabled({ userId: envelope.userId });
+
+  if (envelope.status !== DocumentStatus.PENDING) {
+    throw new AppError(AppErrorCode.INVALID_REQUEST, {
+      message: `Document ${envelope.id} must be pending to reject`,
+    });
+  }
+
+  if (recipient.signingStatus !== SigningStatus.NOT_SIGNED) {
+    throw new AppError(AppErrorCode.INVALID_REQUEST, {
+      message: `Recipient ${recipient.id} has already actioned this document`,
+    });
+  }
+
+  assertRecipientNotExpired(recipient);
 
   // Update the recipient status to rejected
   const [updatedRecipient] = await prisma.$transaction([
@@ -60,7 +76,7 @@ export async function rejectDocumentWithToken({
     }),
     prisma.documentAuditLog.create({
       data: createDocumentAuditLogData({
-        documentId,
+        envelopeId: envelope.id,
         type: DOCUMENT_AUDIT_LOG_TYPE.DOCUMENT_RECIPIENT_REJECTED,
         user: {
           name: recipient.name,
@@ -78,11 +94,13 @@ export async function rejectDocumentWithToken({
     }),
   ]);
 
+  const legacyDocumentId = mapSecondaryIdToDocumentId(envelope.secondaryId);
+
   // Trigger the seal document job to process the document asynchronously
   await jobs.triggerJob({
     name: 'internal.seal-document',
     payload: {
-      documentId,
+      documentId: legacyDocumentId,
       requestMetadata,
     },
   });
@@ -92,7 +110,7 @@ export async function rejectDocumentWithToken({
     name: 'send.signing.rejected.emails',
     payload: {
       recipientId: recipient.id,
-      documentId,
+      documentId: legacyDocumentId,
     },
   });
 
@@ -100,7 +118,7 @@ export async function rejectDocumentWithToken({
   await jobs.triggerJob({
     name: 'send.document.cancelled.emails',
     payload: {
-      documentId,
+      documentId: legacyDocumentId,
       cancellationReason: reason,
       requestMetadata,
     },

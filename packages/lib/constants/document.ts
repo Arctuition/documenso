@@ -1,6 +1,18 @@
+/**
+ * Workaround for E2E tests to not import `msg`.
+ */
+import { DocumentSignatureType } from '@documenso/lib/utils/teams';
 import type { MessageDescriptor } from '@lingui/core';
 import { msg } from '@lingui/core/macro';
 import { DocumentDistributionMethod, DocumentStatus } from '@prisma/client';
+
+export { DocumentSignatureType };
+
+/**
+ * Maximum count returned per status bucket in document stats. The server clamps
+ * each count to this value; the UI should display "10,000+" when it sees it.
+ */
+export const STATS_COUNT_CAP = 10_000;
 
 export const DOCUMENT_STATUS: {
   [status in DocumentStatus]: { description: MessageDescriptor };
@@ -10,6 +22,9 @@ export const DOCUMENT_STATUS: {
   },
   [DocumentStatus.REJECTED]: {
     description: msg`Rejected`,
+  },
+  [DocumentStatus.CANCELLED]: {
+    description: msg`Cancelled`,
   },
   [DocumentStatus.DRAFT]: {
     description: msg`Draft`,
@@ -35,12 +50,6 @@ export const DOCUMENT_DISTRIBUTION_METHODS: Record<string, DocumentDistributionM
   },
 } satisfies Record<DocumentDistributionMethod, DocumentDistributionMethodTypeData>;
 
-export enum DocumentSignatureType {
-  DRAW = 'draw',
-  TYPE = 'type',
-  UPLOAD = 'upload',
-}
-
 type DocumentSignatureTypeData = {
   label: MessageDescriptor;
   value: DocumentSignatureType;
@@ -48,15 +57,24 @@ type DocumentSignatureTypeData = {
 
 export const DOCUMENT_SIGNATURE_TYPES = {
   [DocumentSignatureType.DRAW]: {
-    label: msg`Draw`,
+    label: msg({
+      message: `Draw`,
+      context: `Draw signature`,
+    }),
     value: DocumentSignatureType.DRAW,
   },
   [DocumentSignatureType.TYPE]: {
-    label: msg`Type Signature`,
+    label: msg({
+      message: `Type Signature`,
+      context: `Type signature`,
+    }),
     value: DocumentSignatureType.TYPE,
   },
   [DocumentSignatureType.UPLOAD]: {
-    label: msg`Upload`,
+    label: msg({
+      message: `Upload`,
+      context: `Upload signature`,
+    }),
     value: DocumentSignatureType.UPLOAD,
   },
 } satisfies Record<DocumentSignatureType, DocumentSignatureTypeData>;

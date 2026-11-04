@@ -1,36 +1,58 @@
-import type { Subscription } from '@prisma/client';
-import { SubscriptionStatus } from '@prisma/client';
+import type { Subscription } from '@documenso/prisma/generated/zod/modelSchema/SubscriptionSchema';
+import { OrganisationType } from '@prisma/client';
+
+import { IS_BILLING_ENABLED } from '../constants/app';
+import { AppError, AppErrorCode } from '../errors/app-error';
+import { INTERNAL_CLAIM_ID } from '../types/subscription';
 
 /**
- * Returns true if there is a subscription that is active and is one of the provided price IDs.
+ * Throws an error if billing is enabled and no subscription is found.
  */
-export const subscriptionsContainsActivePlan = (
-  subscriptions: Subscription[],
-  priceIds: string[],
-  allowPastDue?: boolean,
-) => {
-  const allowedSubscriptionStatuses: SubscriptionStatus[] = [SubscriptionStatus.ACTIVE];
+export const validateIfSubscriptionIsRequired = (subscription?: Subscription | null) => {
+  const isBillingEnabled = IS_BILLING_ENABLED();
 
-  if (allowPastDue) {
-    allowedSubscriptionStatuses.push(SubscriptionStatus.PAST_DUE);
+  if (!isBillingEnabled) {
+    return;
   }
 
-  return subscriptions.some(
-    (subscription) =>
-      allowedSubscriptionStatuses.includes(subscription.status) &&
-      priceIds.includes(subscription.priceId),
-  );
+  if (isBillingEnabled && !subscription) {
+    throw new AppError(AppErrorCode.NOT_FOUND, {
+      message: 'Subscription not found',
+    });
+  }
+
+  return subscription;
+};
+
+type PendingPaymentOrganisation = {
+  type: OrganisationType;
+  subscription?: unknown;
+  organisationClaim: {
+    originalSubscriptionClaimId: string | null;
+  };
 };
 
 /**
- * Returns true if there is a subscription that is active and is one of the provided product IDs.
+ * Whether the organisation was created ahead of a paid checkout and is still awaiting
+ * its first successful payment.
+ *
+ * Such organisations have no subscription row and still carry the copied "free" claim,
+ * and must be treated as restricted until the Stripe webhook sync activates them.
+ *
+ * Always returns false when billing is disabled (self-hosted).
  */
-export const subscriptionsContainsActiveProductId = (
-  subscriptions: Subscription[],
-  productId: string[],
-) => {
-  return subscriptions.some(
-    (subscription) =>
-      subscription.status === SubscriptionStatus.ACTIVE && productId.includes(subscription.planId),
-  );
+export const isOrganisationPendingPayment = (organisation: PendingPaymentOrganisation) => {
+  if (!IS_BILLING_ENABLED()) {
+    return false;
+  }
+
+  if (organisation.type !== OrganisationType.ORGANISATION) {
+    return false;
+  }
+
+  if (organisation.subscription) {
+    return false;
+  }
+
+  return organisation.organisationClaim.originalSubscriptionClaimId === INTERNAL_CLAIM_ID.FREE;
 };

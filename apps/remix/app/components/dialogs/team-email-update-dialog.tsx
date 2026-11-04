@@ -1,16 +1,5 @@
-import { useEffect, useState } from 'react';
-
-import { zodResolver } from '@hookform/resolvers/zod';
-import { msg } from '@lingui/core/macro';
-import { useLingui } from '@lingui/react';
-import { Trans } from '@lingui/react/macro';
-import type { TeamEmail } from '@prisma/client';
-import type * as DialogPrimitive from '@radix-ui/react-dialog';
-import { useForm } from 'react-hook-form';
-import { useRevalidator } from 'react-router';
-import { z } from 'zod';
-
 import { trpc } from '@documenso/trpc/react';
+import { ZUpdateTeamEmailMutationSchema } from '@documenso/trpc/server/team-router/schema';
 import { Button } from '@documenso/ui/primitives/button';
 import {
   Dialog,
@@ -21,36 +10,34 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@documenso/ui/primitives/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@documenso/ui/primitives/form/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@documenso/ui/primitives/form/form';
 import { Input } from '@documenso/ui/primitives/input';
 import { useToast } from '@documenso/ui/primitives/use-toast';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Trans, useLingui } from '@lingui/react/macro';
+import type { TeamEmail } from '@prisma/client';
+import type * as DialogPrimitive from '@radix-ui/react-dialog';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useRevalidator } from 'react-router';
+import type { z } from 'zod';
 
 export type TeamEmailUpdateDialogProps = {
-  teamEmail: TeamEmail;
+  teamId: number;
+  teamEmail: Pick<TeamEmail, 'email' | 'name'>;
   trigger?: React.ReactNode;
 } & Omit<DialogPrimitive.DialogProps, 'children'>;
 
-const ZUpdateTeamEmailFormSchema = z.object({
-  name: z.string().trim().min(1, { message: 'Please enter a valid name.' }),
-});
+const ZUpdateTeamEmailFormSchema = ZUpdateTeamEmailMutationSchema.pick({
+  data: true,
+}).shape.data;
 
 type TUpdateTeamEmailFormSchema = z.infer<typeof ZUpdateTeamEmailFormSchema>;
 
-export const TeamEmailUpdateDialog = ({
-  teamEmail,
-  trigger,
-  ...props
-}: TeamEmailUpdateDialogProps) => {
+export const TeamEmailUpdateDialog = ({ teamId, teamEmail, trigger, ...props }: TeamEmailUpdateDialogProps) => {
   const [open, setOpen] = useState(false);
 
-  const { _ } = useLingui();
+  const { t } = useLingui();
   const { toast } = useToast();
   const { revalidate } = useRevalidator();
 
@@ -59,22 +46,23 @@ export const TeamEmailUpdateDialog = ({
     defaultValues: {
       name: teamEmail.name,
     },
+    mode: 'onSubmit',
   });
 
-  const { mutateAsync: updateTeamEmail } = trpc.team.updateTeamEmail.useMutation();
+  const { mutateAsync: updateTeamEmail } = trpc.team.email.update.useMutation();
 
   const onFormSubmit = async ({ name }: TUpdateTeamEmailFormSchema) => {
     try {
       await updateTeamEmail({
-        teamId: teamEmail.teamId,
+        teamId,
         data: {
           name,
         },
       });
 
       toast({
-        title: _(msg`Success`),
-        description: _(msg`Team email was updated.`),
+        title: t`Success`,
+        description: t`Team email was updated.`,
         duration: 5000,
       });
 
@@ -83,10 +71,8 @@ export const TeamEmailUpdateDialog = ({
       setOpen(false);
     } catch (err) {
       toast({
-        title: _(msg`An unknown error occurred`),
-        description: _(
-          msg`We encountered an unknown error while attempting update the team email. Please try again later.`,
-        ),
+        title: t`An unknown error occurred`,
+        description: t`We encountered an unknown error while attempting update the team email. Please try again later.`,
         variant: 'destructive',
       });
     }
@@ -99,11 +85,7 @@ export const TeamEmailUpdateDialog = ({
   }, [open, form]);
 
   return (
-    <Dialog
-      {...props}
-      open={open}
-      onOpenChange={(value) => !form.formState.isSubmitting && setOpen(value)}
-    >
+    <Dialog {...props} open={open} onOpenChange={(value) => !form.formState.isSubmitting && setOpen(value)}>
       <DialogTrigger onClick={(e) => e.stopPropagation()} asChild>
         {trigger ?? (
           <Button variant="outline" className="bg-background">
@@ -125,10 +107,7 @@ export const TeamEmailUpdateDialog = ({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onFormSubmit)}>
-            <fieldset
-              className="flex h-full flex-col space-y-4"
-              disabled={form.formState.isSubmitting}
-            >
+            <fieldset className="flex h-full flex-col space-y-4" disabled={form.formState.isSubmitting}>
               <FormField
                 control={form.control}
                 name="name"
@@ -138,7 +117,7 @@ export const TeamEmailUpdateDialog = ({
                       <Trans>Name</Trans>
                     </FormLabel>
                     <FormControl>
-                      <Input className="bg-background" placeholder="eg. Legal" {...field} />
+                      <Input className="bg-background" placeholder={t`eg. Legal`} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -1,47 +1,17 @@
-import type { MouseEvent, PointerEvent, RefObject, TouchEvent } from 'react';
-import { useMemo, useRef, useState } from 'react';
+import { unsafe_useEffectOnce } from '@documenso/lib/client-only/hooks/use-effect-once';
+import { SIGNATURE_CANVAS_DPI } from '@documenso/lib/constants/signatures';
 
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { Undo2 } from 'lucide-react';
 import type { StrokeOptions } from 'perfect-freehand';
 import { getStroke } from 'perfect-freehand';
-
-import { unsafe_useEffectOnce } from '@documenso/lib/client-only/hooks/use-effect-once';
-import {
-  SIGNATURE_CANVAS_DPI,
-  SIGNATURE_MIN_COVERAGE_THRESHOLD,
-} from '@documenso/lib/constants/signatures';
+import type { MouseEvent, PointerEvent, TouchEvent } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 import { cn } from '../../lib/utils';
-import { getSvgPathFromStroke } from './helper';
+import { checkSignatureValidity, getSvgPathFromStroke } from './helper';
 import { Point } from './point';
 import { SignaturePadColorPicker } from './signature-pad-color-picker';
-
-const checkSignatureValidity = (element: RefObject<HTMLCanvasElement>) => {
-  if (!element.current) {
-    return false;
-  }
-
-  const ctx = element.current.getContext('2d');
-
-  if (!ctx) {
-    return false;
-  }
-
-  const imageData = ctx.getImageData(0, 0, element.current.width, element.current.height);
-  const data = imageData.data;
-  let filledPixels = 0;
-  const totalPixels = data.length / 4;
-
-  for (let i = 0; i < data.length; i += 4) {
-    if (data[i + 3] > 0) filledPixels++;
-  }
-
-  const filledPercentage = filledPixels / totalPixels;
-  const isValid = filledPercentage > SIGNATURE_MIN_COVERAGE_THRESHOLD;
-
-  return isValid;
-};
 
 export type SignaturePadDrawProps = {
   className?: string;
@@ -49,12 +19,9 @@ export type SignaturePadDrawProps = {
   onChange: (_signatureDataUrl: string) => void;
 };
 
-export const SignaturePadDraw = ({
-  className,
-  value,
-  onChange,
-  ...props
-}: SignaturePadDrawProps) => {
+export const SignaturePadDraw = ({ className, value, onChange, ...props }: SignaturePadDrawProps) => {
+  const { t } = useLingui();
+
   const $el = useRef<HTMLCanvasElement>(null);
 
   const $imageData = useRef<ImageData | null>(null);
@@ -68,6 +35,7 @@ export const SignaturePadDraw = ({
   const [selectedColor, setSelectedColor] = useState('black');
 
   const perfectFreehandOptions = useMemo(() => {
+    // ArcSite: thicker strokes so signatures stay legible on the sealed PDF.
     const size = $el.current ? Math.min($el.current.height, $el.current.width) * 0.05 : 15;
 
     return {
@@ -119,16 +87,12 @@ export const SignaturePadDraw = ({
           ctx.fillStyle = selectedColor;
 
           lines.forEach((line) => {
-            const pathData = new Path2D(
-              getSvgPathFromStroke(getStroke(line, perfectFreehandOptions)),
-            );
+            const pathData = new Path2D(getSvgPathFromStroke(getStroke(line, perfectFreehandOptions)));
 
             ctx.fill(pathData);
           });
 
-          const pathData = new Path2D(
-            getSvgPathFromStroke(getStroke([...currentLine, point], perfectFreehandOptions)),
-          );
+          const pathData = new Path2D(getSvgPathFromStroke(getStroke([...currentLine, point], perfectFreehandOptions)));
           ctx.fill(pathData);
         }
       }
@@ -163,9 +127,7 @@ export const SignaturePadDraw = ({
         ctx.fillStyle = selectedColor;
 
         newLines.forEach((line) => {
-          const pathData = new Path2D(
-            getSvgPathFromStroke(getStroke(line, perfectFreehandOptions)),
-          );
+          const pathData = new Path2D(getSvgPathFromStroke(getStroke(line, perfectFreehandOptions)));
           ctx.fill(pathData);
         });
 
@@ -289,12 +251,22 @@ export const SignaturePadDraw = ({
         {...props}
       />
 
-      <SignaturePadColorPicker selectedColor={selectedColor} setSelectedColor={setSelectedColor} />
+      <SignaturePadColorPicker
+        className={cn('transition-opacity duration-100', {
+          'pointer-events-none opacity-0': isPressed,
+        })}
+        selectedColor={selectedColor}
+        setSelectedColor={setSelectedColor}
+      />
 
-      <div className="absolute bottom-3 right-3 flex gap-2">
+      <div
+        className={cn('absolute right-3 bottom-3 flex gap-2 transition-opacity duration-100', {
+          'pointer-events-none opacity-0': isPressed,
+        })}
+      >
         <button
           type="button"
-          className="focus-visible:ring-ring ring-offset-background text-muted-foreground/60 hover:text-muted-foreground rounded-full p-0 text-[0.688rem] focus-visible:outline-none focus-visible:ring-2"
+          className="-m-2 rounded-full p-2 text-[0.688rem] text-muted-foreground/60 ring-offset-background hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           onClick={() => onClearClick()}
         >
           <Trans>Clear Signature</Trans>
@@ -302,7 +274,11 @@ export const SignaturePadDraw = ({
       </div>
 
       {isSignatureValid === false && (
-        <div className="absolute bottom-4 left-4 flex gap-2">
+        <div
+          className={cn('absolute bottom-4 left-4 flex gap-2 transition-opacity duration-100', {
+            'pointer-events-none opacity-0': isPressed,
+          })}
+        >
           <span className="text-destructive text-xs">
             <Trans>Signature is too small</Trans>
           </span>
@@ -310,15 +286,21 @@ export const SignaturePadDraw = ({
       )}
 
       {isSignatureValid && lines.length > 0 && (
-        <div className="absolute bottom-4 left-4 flex gap-2">
+        <div
+          className={cn('absolute bottom-4 left-4 flex gap-2 transition-opacity duration-100', {
+            'pointer-events-none opacity-0': isPressed,
+          })}
+        >
           <button
             type="button"
-            title="undo"
-            className="focus-visible:ring-ring ring-offset-background text-muted-foreground/60 hover:text-muted-foreground rounded-full p-0 text-[0.688rem] focus-visible:outline-none focus-visible:ring-2"
+            title={t`Undo`}
+            className="-m-2 rounded-full p-2 text-[0.688rem] text-muted-foreground/60 ring-offset-background hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             onClick={onUndoClick}
           >
             <Undo2 className="h-4 w-4" />
-            <span className="sr-only">Undo</span>
+            <span className="sr-only">
+              <Trans>Undo</Trans>
+            </span>
           </button>
         </div>
       )}

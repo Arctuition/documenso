@@ -1,17 +1,21 @@
-import { DocumentVisibility, type Prisma, TeamMemberRole, type Template } from '@prisma/client';
-import { match } from 'ts-pattern';
-
 import { prisma } from '@documenso/prisma';
+import type { TemplateType } from '@prisma/client';
+import { EnvelopeType, type Prisma } from '@prisma/client';
 
-import { AppError, AppErrorCode } from '../../errors/app-error';
-import { type FindResultResponse } from '../../types/search-params';
+import { TEAM_DOCUMENT_VISIBILITY_MAP } from '../../constants/teams';
+import type { FindResultResponse } from '../../types/search-params';
+import { getMemberRoles } from '../team/get-member-roles';
+import { buildTemplateSearchFilter } from './build-template-search-filter';
 
 export type FindTemplatesOptions = {
   userId: number;
-  teamId?: number;
-  type?: Template['type'];
+  teamId: number;
+  type?: TemplateType;
   page?: number;
   perPage?: number;
+  folderId?: string;
+  query?: string;
+  ownerIds?: number[];
 };
 
 export const findTemplates = async ({
@@ -20,86 +24,79 @@ export const findTemplates = async ({
   type,
   page = 1,
   perPage = 10,
+  folderId,
+  query,
+  ownerIds,
 }: FindTemplatesOptions) => {
-  const whereFilter: Prisma.TemplateWhereInput[] = [];
+  const { teamRole } = await getMemberRoles({
+    teamId,
+    reference: {
+      type: 'User',
+      id: userId,
+    },
+  });
 
-  if (teamId === undefined) {
-    whereFilter.push({ userId, teamId: null });
+  const filters: Prisma.EnvelopeWhereInput[] = [
+    { teamId },
+    {
+      OR: [
+        {
+          visibility: {
+            in: TEAM_DOCUMENT_VISIBILITY_MAP[teamRole],
+          },
+        },
+        { userId, teamId },
+      ],
+    },
+    folderId ? { folderId } : { folderId: null },
+  ];
+
+  if (ownerIds && ownerIds.length > 0) {
+    filters.push({ userId: { in: ownerIds } });
   }
 
-  if (teamId !== undefined) {
-    const teamMember = await prisma.teamMember.findFirst({
-      where: {
-        userId,
-        teamId,
-      },
-    });
+  const searchFilter = buildTemplateSearchFilter(query);
 
-    if (!teamMember) {
-      throw new AppError(AppErrorCode.UNAUTHORIZED, {
-        message: 'You are not a member of this team.',
-      });
-    }
-
-    whereFilter.push(
-      { teamId },
-      {
-        OR: [
-          match(teamMember.role)
-            .with(TeamMemberRole.ADMIN, () => ({
-              visibility: {
-                in: [
-                  DocumentVisibility.EVERYONE,
-                  DocumentVisibility.MANAGER_AND_ABOVE,
-                  DocumentVisibility.ADMIN,
-                ],
-              },
-            }))
-            .with(TeamMemberRole.MANAGER, () => ({
-              visibility: {
-                in: [DocumentVisibility.EVERYONE, DocumentVisibility.MANAGER_AND_ABOVE],
-              },
-            }))
-            .otherwise(() => ({ visibility: DocumentVisibility.EVERYONE })),
-          { userId, teamId },
-        ],
-      },
-    );
+  if (searchFilter) {
+    filters.push(searchFilter);
   }
+
+  const where: Prisma.EnvelopeWhereInput = {
+    type: EnvelopeType.TEMPLATE,
+    templateType: type,
+    AND: filters,
+  };
+
+  const templateInclude = {
+    team: {
+      select: {
+        id: true,
+        url: true,
+        name: true,
+      },
+    },
+    fields: true,
+    recipients: true,
+    documentMeta: true,
+    directLink: {
+      select: {
+        token: true,
+        enabled: true,
+      },
+    },
+  } as const;
 
   const [data, count] = await Promise.all([
-    prisma.template.findMany({
-      where: {
-        type,
-        AND: whereFilter,
-      },
-      include: {
-        team: {
-          select: {
-            id: true,
-            url: true,
-          },
-        },
-        fields: true,
-        recipients: true,
-        templateMeta: true,
-        directLink: {
-          select: {
-            token: true,
-            enabled: true,
-          },
-        },
-      },
+    prisma.envelope.findMany({
+      where,
+      include: templateInclude,
       skip: Math.max(page - 1, 0) * perPage,
+      take: perPage,
       orderBy: {
         createdAt: 'desc',
       },
     }),
-    prisma.template.count({
-      where: {
-        AND: whereFilter,
-      },
-    }),
+    prisma.envelope.count({ where }),
   ]);
 
   return {

@@ -1,10 +1,4 @@
-import { useEffect, useState } from 'react';
-
-import { msg } from '@lingui/core/macro';
-import { useLingui } from '@lingui/react';
-import { Loader } from 'lucide-react';
-import { useRevalidator } from 'react-router';
-
+import { useAnalytics } from '@documenso/lib/client-only/hooks/use-analytics';
 import { DO_NOT_INVALIDATE_QUERY_ON_MUTATION } from '@documenso/lib/constants/trpc';
 import { AppError, AppErrorCode } from '@documenso/lib/errors/app-error';
 import type { TRecipientActionAuth } from '@documenso/lib/types/document-auth';
@@ -18,9 +12,14 @@ import type {
 import { Label } from '@documenso/ui/primitives/label';
 import { RadioGroup, RadioGroupItem } from '@documenso/ui/primitives/radio-group';
 import { useToast } from '@documenso/ui/primitives/use-toast';
+import { msg } from '@lingui/core/macro';
+import { useLingui } from '@lingui/react';
+import { useEffect, useState } from 'react';
+import { useRevalidator } from 'react-router';
 
 import { useRequiredDocumentSigningAuthContext } from './document-signing-auth-provider';
 import { DocumentSigningFieldContainer } from './document-signing-field-container';
+import { DocumentSigningFieldsLoader } from './document-signing-fields';
 import { useDocumentSigningRecipientContext } from './document-signing-recipient-provider';
 
 export type DocumentSigningRadioFieldProps = {
@@ -29,18 +28,16 @@ export type DocumentSigningRadioFieldProps = {
   onUnsignField?: (value: TRemovedSignedFieldWithTokenMutationSchema) => Promise<void> | void;
 };
 
-export const DocumentSigningRadioField = ({
-  field,
-  onSignField,
-  onUnsignField,
-}: DocumentSigningRadioFieldProps) => {
+export const DocumentSigningRadioField = ({ field, onSignField, onUnsignField }: DocumentSigningRadioFieldProps) => {
   const { _ } = useLingui();
   const { toast } = useToast();
   const { revalidate } = useRevalidator();
+  const analytics = useAnalytics();
 
   const { recipient, targetSigner, isAssistantMode } = useDocumentSigningRecipientContext();
 
   const parsedFieldMeta = ZRadioFieldMeta.parse(field.fieldMeta);
+  const isReadOnly = parsedFieldMeta.readOnly;
   const values = parsedFieldMeta.values?.map((item) => ({
     ...item,
     value: item.value.length > 0 ? item.value : `empty-value-${item.id}`,
@@ -55,10 +52,8 @@ export const DocumentSigningRadioField = ({
   const { mutateAsync: signFieldWithToken, isPending: isSignFieldWithTokenLoading } =
     trpc.field.signFieldWithToken.useMutation(DO_NOT_INVALIDATE_QUERY_ON_MUTATION);
 
-  const {
-    mutateAsync: removeSignedFieldWithToken,
-    isPending: isRemoveSignedFieldWithTokenLoading,
-  } = trpc.field.removeSignedFieldWithToken.useMutation(DO_NOT_INVALIDATE_QUERY_ON_MUTATION);
+  const { mutateAsync: removeSignedFieldWithToken, isPending: isRemoveSignedFieldWithTokenLoading } =
+    trpc.field.removeSignedFieldWithToken.useMutation(DO_NOT_INVALIDATE_QUERY_ON_MUTATION);
 
   const isLoading = isSignFieldWithTokenLoading || isRemoveSignedFieldWithTokenLoading;
   const shouldAutoSignField =
@@ -98,6 +93,13 @@ export const DocumentSigningRadioField = ({
 
       console.error(err);
 
+      analytics.captureException(err, {
+        source: 'signing',
+        location: 'sign_field',
+        fieldType: field.type,
+        recipientId: field.recipientId,
+      });
+
       toast({
         title: _(msg`Error`),
         description: isAssistantMode
@@ -127,6 +129,13 @@ export const DocumentSigningRadioField = ({
     } catch (err) {
       console.error(err);
 
+      analytics.captureException(err, {
+        source: 'signing',
+        location: 'remove_field',
+        fieldType: field.type,
+        recipientId: field.recipientId,
+      });
+
       toast({
         title: _(msg`Error`),
         description: _(msg`An error occurred while removing the selection.`),
@@ -150,44 +159,47 @@ export const DocumentSigningRadioField = ({
 
   return (
     <DocumentSigningFieldContainer field={field} onSign={onSign} onRemove={onRemove} type="Radio">
-      {isLoading && (
-        <div className="bg-background absolute inset-0 z-20 flex items-center justify-center rounded-md">
-          <Loader className="text-primary h-5 w-5 animate-spin md:h-8 md:w-8" />
-        </div>
-      )}
+      {isLoading && <DocumentSigningFieldsLoader />}
 
       {!field.inserted && (
-        <RadioGroup onValueChange={(value) => handleSelectItem(value)} className="z-10">
+        <RadioGroup
+          value={selectedOption}
+          onValueChange={(value) => handleSelectItem(value)}
+          className="z-10 my-0.5 gap-y-1"
+        >
           {values?.map((item, index) => (
-            <div key={index} className="flex items-center gap-x-1.5">
+            <div key={index} className="flex items-center">
               <RadioGroupItem
-                className="h-4 w-4 shrink-0"
+                className="h-3 w-3 shrink-0"
                 value={item.value}
-                id={`option-${index}`}
-                checked={item.checked}
+                id={`option-${field.id}-${item.id}`}
+                disabled={isReadOnly}
               />
-
-              <Label htmlFor={`option-${index}`}>
-                {item.value.includes('empty-value-') ? '' : item.value}
-              </Label>
+              {!item.value.includes('empty-value-') && item.value && (
+                <Label htmlFor={`option-${field.id}-${item.id}`} className="ml-1.5 font-normal text-foreground text-xs">
+                  {item.value}
+                </Label>
+              )}
             </div>
           ))}
         </RadioGroup>
       )}
 
       {field.inserted && (
-        <RadioGroup className="gap-y-1">
+        <RadioGroup value={field.customText ?? ''} className="my-0.5 gap-y-1">
           {values?.map((item, index) => (
-            <div key={index} className="flex items-center gap-x-1.5">
+            <div key={index} className="flex items-center">
               <RadioGroupItem
                 className="h-3 w-3"
                 value={item.value}
-                id={`option-${index}`}
-                checked={item.value === field.customText}
+                id={`option-${field.id}-${item.id}`}
+                disabled={isReadOnly}
               />
-              <Label htmlFor={`option-${index}`} className="text-xs">
-                {item.value.includes('empty-value-') ? '' : item.value}
-              </Label>
+              {!item.value.includes('empty-value-') && item.value && (
+                <Label htmlFor={`option-${field.id}-${item.id}`} className="ml-1.5 font-normal text-foreground text-xs">
+                  {item.value}
+                </Label>
+              )}
             </div>
           ))}
         </RadioGroup>

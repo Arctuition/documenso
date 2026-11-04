@@ -1,16 +1,16 @@
+import { PassThrough } from 'node:stream';
+import { dynamicActivate } from '@documenso/lib/utils/i18n';
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
 import { createReadableStreamFromReadable } from '@react-router/node';
 import { isbot } from 'isbot';
-import { PassThrough } from 'node:stream';
 import type { RenderToPipeableStreamOptions } from 'react-dom/server';
 import { renderToPipeableStream } from 'react-dom/server';
-import type { AppLoadContext, EntryContext } from 'react-router';
+import type { EntryContext, RouterContextProvider } from 'react-router';
 import { ServerRouter } from 'react-router';
 
-import { dynamicActivate } from '@documenso/lib/utils/i18n';
-
 import { getRequestLanguage } from './utils/get-request-language.server';
+import { nonceContext } from './utils/nonce';
 
 export const streamTimeout = 5_000;
 
@@ -19,11 +19,17 @@ export default async function handleRequest(
   responseStatusCode: number,
   responseHeaders: Headers,
   routerContext: EntryContext,
-  _loadContext: AppLoadContext,
+  loadContext: RouterContextProvider,
 ) {
   const language = await getRequestLanguage(request);
 
   await dynamicActivate(language);
+
+  // Threaded into ServerRouter so React Router applies the nonce to the
+  // scripts it injects (route manifest, hydration data, module preloads).
+  // The same nonce is also exposed to the React tree via the root loader so
+  // our own inline scripts/styles can carry it.
+  const nonce = loadContext.get(nonceContext) || undefined;
 
   return new Promise((resolve, reject) => {
     let shellRendered = false;
@@ -36,9 +42,10 @@ export default async function handleRequest(
 
     const { pipe, abort } = renderToPipeableStream(
       <I18nProvider i18n={i18n}>
-        <ServerRouter context={routerContext} url={request.url} />
+        <ServerRouter context={routerContext} url={request.url} nonce={nonce} />
       </I18nProvider>,
       {
+        nonce,
         [readyOption]() {
           shellRendered = true;
           const body = new PassThrough();
