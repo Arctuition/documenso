@@ -91,7 +91,10 @@ cloudservice (`arcservice/services/documenso.py`) only uses API v1 with a raw to
 
 - `npm run build` / `start` only build and run the remix app. `npm run build:prod` sets
   `NEXT_PUBLIC_ASSET_URL` (Vite `base`) to CloudFront and `CDN_S3_BUCKET`, and
-  `apps/remix/.bin/build.sh` syncs hashed assets to that bucket.
+  `apps/remix/.bin/build.sh` syncs hashed assets to that bucket. Both variables must be listed in
+  `turbo.json` `globalEnv`: turbo 2 drops undeclared variables, and without `CDN_S3_BUCKET` the
+  build silently skips the upload, so prod pages load assets that aren't on the CDN. `build:prod`
+  also gives Node a 4 GB heap, because `tsc` runs out of the default ~2 GB on the 8 GB prod host.
 - No `prebuild` in `@documenso/prisma`; commitlint hook disabled; `certificate.p12` and
   `ecosystem.config.cjs` are git-ignored.
 
