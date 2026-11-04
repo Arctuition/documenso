@@ -10,7 +10,8 @@ on:
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-latest
+    # ArcSite: ubuntu-latest is now 26.04, which our Playwright version cannot install on.
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
       actions: read
