@@ -14,7 +14,8 @@ concurrency:
 jobs:
   build_app:
     name: Build App
-    runs-on: ubuntu-latest
+    # ArcSite: ubuntu-latest is now 26.04, which our Playwright version cannot install on.
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - name: Checkout
@@ -32,7 +33,8 @@ jobs:
 
   build_docker:
     name: Build Docker Image
-    runs-on: ubuntu-latest
+    # ArcSite: ubuntu-latest is now 26.04, which our Playwright version cannot install on.
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - name: Checkout

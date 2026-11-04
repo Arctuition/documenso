@@ -97,6 +97,11 @@ cloudservice (`arcservice/services/documenso.py`) only uses API v1 with a raw to
   also gives Node a 4 GB heap, because `tsc` runs out of the default ~2 GB on the 8 GB prod host.
 - No `prebuild` in `@documenso/prisma`; commitlint hook disabled; `certificate.p12` and
   `ecosystem.config.cjs` are git-ignored.
+- GitHub Actions: upstream's Crowdin workflows (`translations-pull`, `translations-upload`,
+  `translations-force-pull`) are deleted. They need upstream's Crowdin project and would overwrite the
+  fork's own translations; the pull one also ran every two hours and failed each time. `ci.yml` and
+  `codeql-analysis.yml` run on `ubuntu-24.04` instead of `ubuntu-latest`, which moved to Ubuntu 26.04
+  where `npm ci` fails installing Playwright's Chromium. Drop the pin once Playwright supports 26.04.
 
 ## Upgrade checklist (v1.10 → v2.21)
 
